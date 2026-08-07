@@ -9,15 +9,15 @@ je to praktické miesto na uloženie appky vedľa tvojich existujúcich stránok
 
 ## 1. Čo doinštalovať na Ubuntu (raz, pred prvým nasadením)
 
-Ak si Node.js a `unzip` už nastavil, tento krok preskoč. Inak:
+Ak si Node.js a git už nastavil, tento krok preskoč. Inak:
 
 ```bash
 # Node.js LTS (cez oficiálny NodeSource repozitár)
 curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# unzip, ak ešte nemáš
-sudo apt-get install -y unzip
+# git, ak ešte nemáš
+sudo apt-get install -y git
 
 # Apache moduly pre reverse proxy
 sudo a2enmod proxy proxy_http
@@ -31,22 +31,22 @@ node -v
 npm -v
 ```
 
-Balíčky appky (Express, Anthropic SDK a pod.) sú už zabalené v `node_modules/`
-v zipe — na serveri sa `npm install` spúšťať nemusí.
+## 2. Naklonuj appku z gitu
 
-## 2. Rozbaľ appku
+Zdrojový kód appky je na `https://github.com/jasvarc/rozpravka` (verejné repo).
+`node_modules/` nie je v repozitári (balíčky sú čisto JS bez natívnych
+binárok), takže po klonovaní treba jednorazovo `npm install`:
 
 ```bash
 cd /var/www/html
-sudo unzip rozpravky.zip
+sudo git clone https://github.com/jasvarc/rozpravka.git rozpravky
+cd rozpravky
+sudo npm install --omit=dev
 ```
-
-Vytvorí sa `/var/www/html/rozpravky/` so všetkým potrebným.
 
 ## 3. Spusti inštalačný skript
 
 ```bash
-cd /var/www/html/rozpravky
 sudo bash deploy/install.sh
 ```
 
@@ -138,18 +138,18 @@ sudo systemctl stop bedtime-story-app
 
 ## Aktualizácia appky v budúcnosti
 
-Keď dostaneš nový zip s aktualizáciou:
+Keď pribudnú zmeny v git repozitári, stačí:
 
 ```bash
-sudo systemctl stop bedtime-story-app
-cd /var/www/html
-sudo rm -rf rozpravky_old && sudo mv rozpravky rozpravky_old
-sudo unzip rozpravky-novy.zip
-sudo cp rozpravky_old/.env rozpravky/.env
-sudo cp -r rozpravky_old/data rozpravky/data
-cd rozpravky
-sudo bash deploy/install.sh
+cd /var/www/html/rozpravky
+bash deploy/update.sh
 ```
 
-(`data/` obsahuje históriu rozprávok a rodičovský PIN, `.env` obsahuje API
-kľúč — obe si pri aktualizácii preneste zo starej verzie.)
+Skript stiahne najnovšiu verziu (`git pull`), obnoví vlastníctvo súborov na
+`www-data` a appku reštartuje. `.env` a `data/` nie sú v gite (sú v
+`.gitignore`), takže `git pull` sa ich nedotkne. Skript sa dá spustiť ako
+bežný používateľ (`jan`) — vnútri používa `sudo` len pre konkrétne príkazy,
+ktoré ho potrebujú.
+
+Ak appka pribudla node závislosť (zmenil sa `package.json`), treba po pulli
+naviac spustiť `sudo npm install --omit=dev`.

@@ -9,6 +9,8 @@ fi
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 echo "Adresar appky: $APP_DIR"
 
+git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
+
 if ! command -v node >/dev/null 2>&1; then
   echo "Node.js nie je najdeny v PATH. Najprv ho nainstaluj (pozri README-DEPLOY.md) a skript spusti znova."
   exit 1
