@@ -18,7 +18,9 @@ const blockedList = document.getElementById('blockedList');
 const blockedInput = document.getElementById('blockedInput');
 const addBlockedBtn = document.getElementById('addBlockedBtn');
 
-const moralLessonCheckbox = document.getElementById('moralLessonCheckbox');
+const moralLessonInput = document.getElementById('moralLessonInput');
+const minLengthInput = document.getElementById('minLengthInput');
+const maxLengthInput = document.getElementById('maxLengthInput');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const settingsMsg = document.getElementById('settingsMsg');
@@ -67,7 +69,9 @@ async function loadSettings() {
   const data = await res.json();
   state.allowedTopics = data.allowedTopics || [];
   state.blockedTopics = data.blockedTopics || [];
-  moralLessonCheckbox.checked = !!data.includeMoralLessonNext;
+  moralLessonInput.value = data.moralLessonNext || '';
+  minLengthInput.value = data.minLength || 250;
+  maxLengthInput.value = data.maxLength || 400;
   renderTopics();
 }
 
@@ -83,9 +87,16 @@ async function loadHistory() {
   stories.slice(0, 20).forEach((s) => {
     const item = document.createElement('div');
     item.className = 'story-history-item';
-    const lessonTag = s.moralLessonIncluded ? ' · s mravným ponaučením' : '';
-    item.innerHTML = `<div class="meta">${formatDate(s.createdAt)}${lessonTag}</div><strong></strong>`;
-    item.querySelector('strong').textContent = s.childPrompt;
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = s.moralLesson ? `${formatDate(s.createdAt)} · ponaučenie: ${s.moralLesson}` : formatDate(s.createdAt);
+
+    const title = document.createElement('strong');
+    title.textContent = s.childPrompt;
+
+    item.appendChild(meta);
+    item.appendChild(title);
     historyList.appendChild(item);
   });
 }
@@ -168,13 +179,24 @@ addBlockedBtn.addEventListener('click', () => {
 saveSettingsBtn.addEventListener('click', async () => {
   settingsMsg.style.display = 'none';
   settingsError.style.display = 'none';
+
+  const minLength = Number(minLengthInput.value);
+  const maxLength = Number(maxLengthInput.value);
+  if (!minLength || !maxLength || minLength > maxLength) {
+    settingsError.textContent = 'Dĺžka "od" musí byť vyplnená a nesmie byť väčšia ako dĺžka "do".';
+    settingsError.style.display = 'block';
+    return;
+  }
+
   const res = await fetch('api/settings', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       allowedTopics: state.allowedTopics,
       blockedTopics: state.blockedTopics,
-      includeMoralLessonNext: moralLessonCheckbox.checked,
+      moralLessonNext: moralLessonInput.value,
+      minLength,
+      maxLength,
     }),
   });
   const data = await res.json();

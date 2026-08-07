@@ -51,9 +51,18 @@
         </div>
       </div>
 
-      <div class="field checkbox-row">
-        <input type="checkbox" id="moralLessonCheckbox" />
-        <label for="moralLessonCheckbox" style="margin: 0">Zahrnúť mravné ponaučenie do ďalšej rozprávky</label>
+      <div class="field">
+        <label for="moralLessonInput">Mravné ponaučenie pre nasledujúcu rozprávku (nechaj prázdne, ak žiadne nechceš)</label>
+        <textarea id="moralLessonInput" rows="2" maxlength="300" placeholder="napr. je dôležité deliť sa s kamarátmi"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Požadovaná dĺžka rozprávky (počet slov)</label>
+        <div class="actions-row">
+          <input type="number" id="minLengthInput" min="20" max="2000" step="10" style="width: 100px" />
+          <span>od &ndash; do</span>
+          <input type="number" id="maxLengthInput" min="20" max="2000" step="10" style="width: 100px" />
+        </div>
       </div>
 
       <div class="actions-row">

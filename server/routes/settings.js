@@ -18,6 +18,17 @@ function sanitizeTopicList(list) {
     .slice(0, 50);
 }
 
+function sanitizeMoralLesson(text) {
+  if (typeof text !== 'string') return '';
+  return text.trim().slice(0, 300);
+}
+
+function sanitizeLength(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(2000, Math.max(20, Math.round(n)));
+}
+
 router.get('/', requireParentAuth, (req, res) => {
   const settings = getSettings();
   const { pinHash, ...safe } = settings;
@@ -25,11 +36,21 @@ router.get('/', requireParentAuth, (req, res) => {
 });
 
 router.put('/', requireParentAuth, (req, res) => {
-  const { allowedTopics, blockedTopics, includeMoralLessonNext } = req.body;
+  const { allowedTopics, blockedTopics, moralLessonNext, minLength, maxLength } = req.body;
+  const current = getSettings();
+
+  const sanitizedMin = sanitizeLength(minLength, current.minLength);
+  const sanitizedMax = sanitizeLength(maxLength, current.maxLength);
+  if (sanitizedMin > sanitizedMax) {
+    return res.status(400).json({ error: 'Dĺžka "od" nemôže byť väčšia ako dĺžka "do".' });
+  }
+
   const updated = saveSettings({
     allowedTopics: sanitizeTopicList(allowedTopics),
     blockedTopics: sanitizeTopicList(blockedTopics),
-    includeMoralLessonNext: !!includeMoralLessonNext,
+    moralLessonNext: sanitizeMoralLesson(moralLessonNext),
+    minLength: sanitizedMin,
+    maxLength: sanitizedMax,
   });
   const { pinHash, ...safe } = updated;
   res.json(safe);

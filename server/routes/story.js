@@ -19,22 +19,24 @@ router.post('/', async (req, res) => {
 
   try {
     const settings = getSettings();
-    const includeMoralLesson = !!settings.includeMoralLessonNext;
+    const moralLesson = (settings.moralLessonNext || '').trim();
 
     const content = await generateStory({
       childPrompt: prompt.trim().slice(0, 300),
       allowedTopics: settings.allowedTopics,
       blockedTopics: settings.blockedTopics,
-      includeMoralLesson,
+      moralLesson,
+      minLength: settings.minLength,
+      maxLength: settings.maxLength,
     });
 
-    if (includeMoralLesson) {
-      saveSettings({ includeMoralLessonNext: false });
+    if (moralLesson) {
+      saveSettings({ moralLessonNext: '' });
     }
 
     const record = addStory({
       childPrompt: prompt.trim().slice(0, 300),
-      moralLessonIncluded: includeMoralLesson,
+      moralLesson: moralLesson || null,
       content,
     });
 

@@ -9,7 +9,9 @@ const DEFAULT_SETTINGS = {
   pinHash: null,
   allowedTopics: [],
   blockedTopics: [],
-  includeMoralLessonNext: false,
+  moralLessonNext: '',
+  minLength: 250,
+  maxLength: 400,
 };
 
 function ensureDataFiles() {
