@@ -12,6 +12,11 @@ const DEFAULT_SETTINGS = {
   moralLessonNext: '',
   minLength: 250,
   maxLength: 400,
+  voiceName: '',
+  voiceRate: 1,
+  girlNames: [],
+  boyNames: [],
+  adultNames: [],
 };
 
 function ensureDataFiles() {

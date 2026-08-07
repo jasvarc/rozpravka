@@ -8,6 +8,12 @@ const stopBtn = document.getElementById('stopBtn');
 const newStoryBtn = document.getElementById('newStoryBtn');
 
 let utterance = null;
+let storyRawText = '';
+let currentVoiceName = '';
+let currentVoiceRate = 1;
+let wordSpans = [];
+let wordCursor = 0;
+let highlightedSpan = null;
 
 function showError(msg) {
   errorBox.textContent = msg;
@@ -16,6 +22,48 @@ function showError(msg) {
 
 function hideError() {
   errorBox.style.display = 'none';
+}
+
+function renderStoryText(text) {
+  storyText.innerHTML = '';
+  wordSpans = [];
+  const wordRegex = /\S+/g;
+  let match;
+  let lastIndex = 0;
+  while ((match = wordRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      storyText.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+    }
+    const span = document.createElement('span');
+    span.className = 'story-word';
+    span.textContent = match[0];
+    span.dataset.start = match.index;
+    storyText.appendChild(span);
+    wordSpans.push(span);
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    storyText.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
+}
+
+function resetHighlight() {
+  if (highlightedSpan) highlightedSpan.classList.remove('story-word-active');
+  highlightedSpan = null;
+  wordCursor = 0;
+}
+
+function highlightAtCharIndex(charIndex) {
+  while (wordCursor + 1 < wordSpans.length && Number(wordSpans[wordCursor + 1].dataset.start) <= charIndex) {
+    wordCursor += 1;
+  }
+  const target = wordSpans[wordCursor];
+  if (target && target !== highlightedSpan) {
+    if (highlightedSpan) highlightedSpan.classList.remove('story-word-active');
+    target.classList.add('story-word-active');
+    highlightedSpan = target;
+    target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
 }
 
 async function generateStory() {
@@ -28,6 +76,7 @@ async function generateStory() {
   generateBtn.disabled = true;
   generateBtn.innerHTML = '<span class="spinner"></span>Rozprávka sa píše...';
   storyBox.style.display = 'none';
+  window.speechSynthesis.cancel();
 
   try {
     const res = await fetch('api/story', {
@@ -46,7 +95,11 @@ async function generateStory() {
     if (!res.ok) {
       throw new Error(data.error || 'Niečo sa pokazilo.');
     }
-    storyText.textContent = data.content;
+    storyRawText = data.content;
+    currentVoiceName = data.voiceName || '';
+    currentVoiceRate = data.voiceRate || 1;
+    renderStoryText(storyRawText);
+    resetHighlight();
     storyBox.style.display = 'block';
   } catch (err) {
     showError(err.message);
@@ -62,18 +115,27 @@ function readAloud() {
     return;
   }
   window.speechSynthesis.cancel();
-  utterance = new SpeechSynthesisUtterance(storyText.textContent);
+  resetHighlight();
+
+  utterance = new SpeechSynthesisUtterance(storyRawText);
   utterance.lang = 'sk-SK';
-  utterance.rate = 0.95;
+  utterance.rate = currentVoiceRate || 0.95;
   utterance.pitch = 1.05;
 
   const voices = window.speechSynthesis.getVoices();
-  const skVoice = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('sk'));
-  if (skVoice) utterance.voice = skVoice;
+  const chosenVoice =
+    (currentVoiceName && voices.find((v) => v.name === currentVoiceName)) ||
+    voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('sk'));
+  if (chosenVoice) utterance.voice = chosenVoice;
+
+  utterance.onboundary = (event) => {
+    highlightAtCharIndex(event.charIndex);
+  };
 
   utterance.onend = () => {
     readBtn.style.display = 'inline-block';
     stopBtn.style.display = 'none';
+    resetHighlight();
   };
 
   window.speechSynthesis.speak(utterance);
@@ -85,6 +147,7 @@ function stopReading() {
   window.speechSynthesis.cancel();
   readBtn.style.display = 'inline-block';
   stopBtn.style.display = 'none';
+  resetHighlight();
 }
 
 generateBtn.addEventListener('click', generateStory);
@@ -92,6 +155,7 @@ readBtn.addEventListener('click', readAloud);
 stopBtn.addEventListener('click', stopReading);
 newStoryBtn.addEventListener('click', () => {
   window.speechSynthesis.cancel();
+  resetHighlight();
   storyBox.style.display = 'none';
   promptInput.value = '';
   promptInput.focus();

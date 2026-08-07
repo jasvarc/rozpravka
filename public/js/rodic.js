@@ -10,24 +10,30 @@ const loginPinInput = document.getElementById('loginPinInput');
 const loginBtn = document.getElementById('loginBtn');
 const loginError = document.getElementById('loginError');
 
-const allowedList = document.getElementById('allowedList');
-const allowedInput = document.getElementById('allowedInput');
-const addAllowedBtn = document.getElementById('addAllowedBtn');
-
-const blockedList = document.getElementById('blockedList');
-const blockedInput = document.getElementById('blockedInput');
-const addBlockedBtn = document.getElementById('addBlockedBtn');
-
 const moralLessonInput = document.getElementById('moralLessonInput');
 const minLengthInput = document.getElementById('minLengthInput');
 const maxLengthInput = document.getElementById('maxLengthInput');
+const voiceSelect = document.getElementById('voiceSelect');
+const voiceRateInput = document.getElementById('voiceRateInput');
+const voiceRateLabel = document.getElementById('voiceRateLabel');
+const testVoiceBtn = document.getElementById('testVoiceBtn');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const settingsMsg = document.getElementById('settingsMsg');
 const settingsError = document.getElementById('settingsError');
 const historyList = document.getElementById('historyList');
 
-let state = { allowedTopics: [], blockedTopics: [] };
+const TAG_LISTS = [
+  { key: 'allowedTopics', list: document.getElementById('allowedList'), input: document.getElementById('allowedInput'), btn: document.getElementById('addAllowedBtn') },
+  { key: 'blockedTopics', list: document.getElementById('blockedList'), input: document.getElementById('blockedInput'), btn: document.getElementById('addBlockedBtn') },
+  { key: 'girlNames', list: document.getElementById('girlNamesList'), input: document.getElementById('girlNamesInput'), btn: document.getElementById('addGirlNamesBtn') },
+  { key: 'boyNames', list: document.getElementById('boyNamesList'), input: document.getElementById('boyNamesInput'), btn: document.getElementById('addBoyNamesBtn') },
+  { key: 'adultNames', list: document.getElementById('adultNamesList'), input: document.getElementById('adultNamesInput'), btn: document.getElementById('addAdultNamesBtn') },
+];
+
+let state = { allowedTopics: [], blockedTopics: [], girlNames: [], boyNames: [], adultNames: [] };
+let availableVoices = [];
+let pendingVoiceName = '';
 
 function showOnly(section) {
   setupSection.style.display = 'none';
@@ -48,16 +54,75 @@ function renderChips(container, items, onRemove) {
   });
 }
 
-function renderTopics() {
-  renderChips(allowedList, state.allowedTopics, (idx) => {
-    state.allowedTopics.splice(idx, 1);
-    renderTopics();
-  });
-  renderChips(blockedList, state.blockedTopics, (idx) => {
-    state.blockedTopics.splice(idx, 1);
-    renderTopics();
+function renderTagLists() {
+  TAG_LISTS.forEach(({ key, list }) => {
+    renderChips(list, state[key], (idx) => {
+      state[key].splice(idx, 1);
+      renderTagLists();
+    });
   });
 }
+
+TAG_LISTS.forEach(({ key, input, btn }) => {
+  btn.addEventListener('click', () => {
+    const val = input.value.trim();
+    if (val) {
+      state[key].push(val);
+      input.value = '';
+      renderTagLists();
+    }
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      btn.click();
+    }
+  });
+});
+
+function populateVoiceSelect() {
+  if (!('speechSynthesis' in window)) return;
+  availableVoices = window.speechSynthesis.getVoices();
+  const previousValue = voiceSelect.value || pendingVoiceName;
+  voiceSelect.innerHTML = '';
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Predvolený (automaticky vybraný slovenský hlas)';
+  voiceSelect.appendChild(defaultOption);
+
+  availableVoices.forEach((v) => {
+    const opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = `${v.name} (${v.lang})`;
+    voiceSelect.appendChild(opt);
+  });
+
+  if (previousValue) {
+    voiceSelect.value = previousValue;
+  }
+}
+
+if ('speechSynthesis' in window) {
+  populateVoiceSelect();
+  window.speechSynthesis.onvoiceschanged = populateVoiceSelect;
+}
+
+voiceRateInput.addEventListener('input', () => {
+  voiceRateLabel.textContent = Number(voiceRateInput.value).toFixed(2);
+});
+
+testVoiceBtn.addEventListener('click', () => {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance('Toto je ukážka hlasu na čítanie rozprávok.');
+  utterance.lang = 'sk-SK';
+  utterance.rate = Number(voiceRateInput.value) || 1;
+  utterance.pitch = 1.05;
+  const chosen = availableVoices.find((v) => v.name === voiceSelect.value);
+  if (chosen) utterance.voice = chosen;
+  window.speechSynthesis.speak(utterance);
+});
 
 function formatDate(iso) {
   return new Date(iso).toLocaleString('sk-SK');
@@ -69,10 +134,17 @@ async function loadSettings() {
   const data = await res.json();
   state.allowedTopics = data.allowedTopics || [];
   state.blockedTopics = data.blockedTopics || [];
+  state.girlNames = data.girlNames || [];
+  state.boyNames = data.boyNames || [];
+  state.adultNames = data.adultNames || [];
   moralLessonInput.value = data.moralLessonNext || '';
   minLengthInput.value = data.minLength || 250;
   maxLengthInput.value = data.maxLength || 400;
-  renderTopics();
+  pendingVoiceName = data.voiceName || '';
+  voiceRateInput.value = data.voiceRate || 1;
+  voiceRateLabel.textContent = Number(voiceRateInput.value).toFixed(2);
+  populateVoiceSelect();
+  renderTagLists();
 }
 
 async function loadHistory() {
@@ -149,33 +221,6 @@ loginBtn.addEventListener('click', async () => {
   await checkSession();
 });
 
-addAllowedBtn.addEventListener('click', () => {
-  const val = allowedInput.value.trim();
-  if (val) {
-    state.allowedTopics.push(val);
-    allowedInput.value = '';
-    renderTopics();
-  }
-});
-
-addBlockedBtn.addEventListener('click', () => {
-  const val = blockedInput.value.trim();
-  if (val) {
-    state.blockedTopics.push(val);
-    blockedInput.value = '';
-    renderTopics();
-  }
-});
-
-[allowedInput, blockedInput].forEach((input) => {
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      (input === allowedInput ? addAllowedBtn : addBlockedBtn).click();
-    }
-  });
-});
-
 saveSettingsBtn.addEventListener('click', async () => {
   settingsMsg.style.display = 'none';
   settingsError.style.display = 'none';
@@ -197,6 +242,11 @@ saveSettingsBtn.addEventListener('click', async () => {
       moralLessonNext: moralLessonInput.value,
       minLength,
       maxLength,
+      voiceName: voiceSelect.value,
+      voiceRate: Number(voiceRateInput.value) || 1,
+      girlNames: state.girlNames,
+      boyNames: state.boyNames,
+      adultNames: state.adultNames,
     }),
   });
   const data = await res.json();

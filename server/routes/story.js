@@ -28,6 +28,9 @@ router.post('/', async (req, res) => {
       moralLesson,
       minLength: settings.minLength,
       maxLength: settings.maxLength,
+      girlNames: settings.girlNames,
+      boyNames: settings.boyNames,
+      adultNames: settings.adultNames,
     });
 
     if (moralLesson) {
@@ -40,7 +43,13 @@ router.post('/', async (req, res) => {
       content,
     });
 
-    res.json({ content, id: record.id, createdAt: record.createdAt });
+    res.json({
+      content,
+      id: record.id,
+      createdAt: record.createdAt,
+      voiceName: settings.voiceName || '',
+      voiceRate: settings.voiceRate || 1,
+    });
   } catch (err) {
     console.error('Chyba pri generovaní rozprávky:', err);
     res.status(502).json({ error: 'Rozprávku sa teraz nepodarilo vygenerovať. Skús to prosím znova.' });

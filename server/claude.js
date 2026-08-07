@@ -2,7 +2,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength }) {
+function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames }) {
   const lines = [
     'Si láskavý rozprávač, ktorý píše krátke upokojujúce rozprávky na dobrú noc pre malé deti v slovenčine.',
     'Rozprávka musí byť primeraná veku, nesmie obsahovať nič strašidelné, násilné ani úzkostné - má dieťa upokojiť pred spaním.',
@@ -27,13 +27,25 @@ function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLengt
     );
   }
 
+  if (girlNames && girlNames.length > 0) {
+    lines.push(`Ak rozprávka obsahuje dievčenskú postavu a potrebuje meno, uprednostni jedno z týchto mien: ${girlNames.join(', ')}.`);
+  }
+
+  if (boyNames && boyNames.length > 0) {
+    lines.push(`Ak rozprávka obsahuje chlapčenskú postavu a potrebuje meno, uprednostni jedno z týchto mien: ${boyNames.join(', ')}.`);
+  }
+
+  if (adultNames && adultNames.length > 0) {
+    lines.push(`Ak rozprávka obsahuje dospelú postavu (napr. rodič, starý rodič, iný dospelý) a potrebuje meno, uprednostni jedno z týchto mien: ${adultNames.join(', ')}.`);
+  }
+
   lines.push('Odpovedz iba samotným textom rozprávky, bez nadpisu a bez akéhokoľvek komentára navyše.');
 
   return lines.join('\n');
 }
 
-async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength }) {
-  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength });
+async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames }) {
+  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames });
   const maxTokens = Math.min(4000, Math.max(300, Math.round(maxLength * 4)));
 
   const message = await client.messages.create(

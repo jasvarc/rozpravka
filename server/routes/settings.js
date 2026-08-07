@@ -29,6 +29,17 @@ function sanitizeLength(value, fallback) {
   return Math.min(2000, Math.max(20, Math.round(n)));
 }
 
+function sanitizeVoiceName(text) {
+  if (typeof text !== 'string') return '';
+  return text.trim().slice(0, 200);
+}
+
+function sanitizeRate(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(2, Math.max(0.5, n));
+}
+
 router.get('/', requireParentAuth, (req, res) => {
   const settings = getSettings();
   const { pinHash, ...safe } = settings;
@@ -36,7 +47,18 @@ router.get('/', requireParentAuth, (req, res) => {
 });
 
 router.put('/', requireParentAuth, (req, res) => {
-  const { allowedTopics, blockedTopics, moralLessonNext, minLength, maxLength } = req.body;
+  const {
+    allowedTopics,
+    blockedTopics,
+    moralLessonNext,
+    minLength,
+    maxLength,
+    voiceName,
+    voiceRate,
+    girlNames,
+    boyNames,
+    adultNames,
+  } = req.body;
   const current = getSettings();
 
   const sanitizedMin = sanitizeLength(minLength, current.minLength);
@@ -51,6 +73,11 @@ router.put('/', requireParentAuth, (req, res) => {
     moralLessonNext: sanitizeMoralLesson(moralLessonNext),
     minLength: sanitizedMin,
     maxLength: sanitizedMax,
+    voiceName: sanitizeVoiceName(voiceName),
+    voiceRate: sanitizeRate(voiceRate, current.voiceRate),
+    girlNames: sanitizeTopicList(girlNames),
+    boyNames: sanitizeTopicList(boyNames),
+    adultNames: sanitizeTopicList(adultNames),
   });
   const { pinHash, ...safe } = updated;
   res.json(safe);
