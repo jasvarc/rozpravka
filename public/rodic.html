@@ -8,116 +8,126 @@
 </head>
 <body>
   <div class="card" style="max-width: 640px">
-    <a href="index.html" class="back-link">&larr; Späť</a>
+    <a href="index.html" class="back-link" data-i18n="back_link">&larr; Späť</a>
 
     <section id="setupSection" style="display: none">
-      <h1>🔒 Vytvor si PIN</h1>
-      <p class="subtitle">Tento PIN bude chrániť rodičovské nastavenia pred dieťaťom.</p>
+      <h1 data-i18n="setup_heading">🔒 Vytvor si PIN</h1>
+      <p class="subtitle" data-i18n="setup_subtitle">Tento PIN bude chrániť rodičovské nastavenia pred dieťaťom.</p>
       <div class="field">
-        <label for="setupPinInput">Nový PIN (4-6 číslic)</label>
+        <label for="setupPinInput" data-i18n="setup_pin_label">Nový PIN (4-6 číslic)</label>
         <input type="password" id="setupPinInput" class="pin-input" inputmode="numeric" maxlength="6" />
       </div>
-      <button id="setupBtn">Nastaviť PIN</button>
+      <button id="setupBtn" data-i18n="setup_btn">Nastaviť PIN</button>
       <div id="setupError" class="error" style="display: none"></div>
     </section>
 
     <section id="loginSection" style="display: none">
-      <h1>🔒 Zadaj PIN</h1>
+      <h1 data-i18n="login_heading">🔒 Zadaj PIN</h1>
       <div class="field">
         <input type="password" id="loginPinInput" class="pin-input" inputmode="numeric" maxlength="6" />
       </div>
-      <button id="loginBtn">Prihlásiť sa</button>
+      <button id="loginBtn" data-i18n="login_btn">Prihlásiť sa</button>
       <div id="loginError" class="error" style="display: none"></div>
     </section>
 
     <section id="settingsSection" style="display: none">
-      <h1>👨‍👩‍👧 Rodičovské nastavenia</h1>
+      <h1 data-i18n="settings_heading">👨‍👩‍👧 Rodičovské nastavenia</h1>
 
       <div class="field">
-        <label>Povolené témy (ak necháš prázdne, povolené sú všetky okrem zakázaných)</label>
+        <label data-i18n="allowed_topics_label">Povolené témy (ak necháš prázdne, povolené sú všetky okrem zakázaných)</label>
         <div class="topic-list" id="allowedList"></div>
         <div class="actions-row">
-          <input type="text" id="allowedInput" placeholder="napr. zvieratká, vesmír" style="flex: 1" />
-          <button id="addAllowedBtn" class="secondary">Pridať</button>
+          <input type="text" id="allowedInput" data-i18n-placeholder="allowed_topics_placeholder" placeholder="napr. zvieratká, vesmír" style="flex: 1" />
+          <button id="addAllowedBtn" class="secondary" data-i18n="add_btn">Pridať</button>
         </div>
       </div>
 
       <div class="field">
-        <label>Zakázané témy</label>
+        <label data-i18n="blocked_topics_label">Zakázané témy</label>
         <div class="topic-list" id="blockedList"></div>
         <div class="actions-row">
-          <input type="text" id="blockedInput" placeholder="napr. strašidlá, vojna" style="flex: 1" />
-          <button id="addBlockedBtn" class="secondary">Pridať</button>
+          <input type="text" id="blockedInput" data-i18n-placeholder="blocked_topics_placeholder" placeholder="napr. strašidlá, vojna" style="flex: 1" />
+          <button id="addBlockedBtn" class="secondary" data-i18n="add_btn">Pridať</button>
         </div>
       </div>
 
       <div class="field">
-        <label for="moralLessonInput">Mravné ponaučenie pre nasledujúcu rozprávku (nechaj prázdne, ak žiadne nechceš)</label>
-        <textarea id="moralLessonInput" rows="2" maxlength="300" placeholder="napr. je dôležité deliť sa s kamarátmi"></textarea>
+        <label for="moralLessonInput" data-i18n="moral_lesson_label">Mravné ponaučenie pre nasledujúcu rozprávku (nechaj prázdne, ak žiadne nechceš)</label>
+        <textarea id="moralLessonInput" rows="2" maxlength="300" data-i18n-placeholder="moral_lesson_placeholder" placeholder="napr. je dôležité deliť sa s kamarátmi"></textarea>
       </div>
 
       <div class="field">
-        <label>Požadovaná dĺžka rozprávky (počet slov)</label>
+        <label data-i18n="length_label">Požadovaná dĺžka rozprávky (počet slov)</label>
         <div class="actions-row">
           <input type="number" id="minLengthInput" min="20" max="2000" step="10" style="width: 100px" />
-          <span>od &ndash; do</span>
+          <span data-i18n="length_between">od &ndash; do</span>
           <input type="number" id="maxLengthInput" min="20" max="2000" step="10" style="width: 100px" />
         </div>
       </div>
 
       <div class="field">
-        <label>Odporúčané dievčenské mená postáv</label>
+        <label data-i18n="girl_names_label">Odporúčané dievčenské mená postáv</label>
         <div class="topic-list" id="girlNamesList"></div>
         <div class="actions-row">
-          <input type="text" id="girlNamesInput" placeholder="napr. Zuzka, Emka" style="flex: 1" />
-          <button id="addGirlNamesBtn" class="secondary">Pridať</button>
+          <input type="text" id="girlNamesInput" data-i18n-placeholder="girl_names_placeholder" placeholder="napr. Zuzka, Emka" style="flex: 1" />
+          <button id="addGirlNamesBtn" class="secondary" data-i18n="add_btn">Pridať</button>
         </div>
       </div>
 
       <div class="field">
-        <label>Odporúčané chlapčenské mená postáv</label>
+        <label data-i18n="boy_names_label">Odporúčané chlapčenské mená postáv</label>
         <div class="topic-list" id="boyNamesList"></div>
         <div class="actions-row">
-          <input type="text" id="boyNamesInput" placeholder="napr. Jakub, Tomáš" style="flex: 1" />
-          <button id="addBoyNamesBtn" class="secondary">Pridať</button>
+          <input type="text" id="boyNamesInput" data-i18n-placeholder="boy_names_placeholder" placeholder="napr. Jakub, Tomáš" style="flex: 1" />
+          <button id="addBoyNamesBtn" class="secondary" data-i18n="add_btn">Pridať</button>
         </div>
       </div>
 
       <div class="field">
-        <label>Odporúčané mená dospelých postáv (rodičia, starí rodičia...)</label>
+        <label data-i18n="adult_names_label">Odporúčané mená dospelých postáv (rodičia, starí rodičia...)</label>
         <div class="topic-list" id="adultNamesList"></div>
         <div class="actions-row">
-          <input type="text" id="adultNamesInput" placeholder="napr. mama Katka, starká Anna" style="flex: 1" />
-          <button id="addAdultNamesBtn" class="secondary">Pridať</button>
+          <input type="text" id="adultNamesInput" data-i18n-placeholder="adult_names_placeholder" placeholder="napr. mama Katka, starká Anna" style="flex: 1" />
+          <button id="addAdultNamesBtn" class="secondary" data-i18n="add_btn">Pridať</button>
         </div>
       </div>
 
       <div class="field">
-        <label for="voiceSelect">Hlas na čítanie rozprávky</label>
-        <select id="voiceSelect" style="width: 100%"></select>
-        <p class="subtitle" style="margin-top: 6px">Dostupné hlasy závisia od prehliadača, v ktorom dieťa rozprávku počúva - ak vybraný hlas tam nebude k dispozícii, použije sa náhradný.</p>
+        <label for="languageSelect" data-i18n="language_label">Jazyk appky</label>
+        <select id="languageSelect" style="width: 100%">
+          <option value="sk" data-i18n="language_option_sk">Slovenčina</option>
+          <option value="en" data-i18n="language_option_en">English</option>
+        </select>
+        <p class="subtitle" style="margin-top: 6px" data-i18n="language_hint">Po uložení sa do tohto jazyka prepne celá appka, vygenerované rozprávky aj predvolený hlas na čítanie.</p>
       </div>
 
       <div class="field">
-        <label for="voiceRateInput">Rýchlosť čítania: <span id="voiceRateLabel">1.0</span>×</label>
+        <label for="voiceSelect" data-i18n="voice_select_label">Hlas na čítanie rozprávky</label>
+        <select id="voiceSelect" style="width: 100%"></select>
+        <p class="subtitle" style="margin-top: 6px" data-i18n="voice_select_hint">Dostupné hlasy závisia od prehliadača, v ktorom dieťa rozprávku počúva - ak vybraný hlas tam nebude k dispozícii, použije sa náhradný.</p>
+      </div>
+
+      <div class="field">
+        <label for="voiceRateInput"><span data-i18n="rate_label_prefix">Rýchlosť čítania:</span> <span id="voiceRateLabel">1.0</span>×</label>
         <input type="range" id="voiceRateInput" min="0.5" max="1.5" step="0.05" style="width: 100%" />
-        <button id="testVoiceBtn" class="secondary" style="margin-top: 8px">🔊 Vyskúšať hlas</button>
+        <button id="testVoiceBtn" class="secondary" style="margin-top: 8px" data-i18n="test_voice_btn">🔊 Vyskúšať hlas</button>
       </div>
 
       <div class="actions-row">
-        <button id="saveSettingsBtn">💾 Uložiť nastavenia</button>
-        <button id="logoutBtn" class="secondary">Odhlásiť sa</button>
+        <button id="saveSettingsBtn" data-i18n="save_settings_btn">💾 Uložiť nastavenia</button>
+        <button id="logoutBtn" class="secondary" data-i18n="logout_btn">Odhlásiť sa</button>
       </div>
       <div id="settingsMsg" class="success" style="display: none"></div>
       <div id="settingsError" class="error" style="display: none"></div>
 
       <div class="story-history">
-        <h2>📖 História rozprávok</h2>
+        <h2 data-i18n="history_heading">📖 História rozprávok</h2>
         <div id="historyList"></div>
       </div>
     </section>
   </div>
 
+  <script src="js/i18n.js"></script>
   <script src="js/rodic.js"></script>
 </body>
 </html>

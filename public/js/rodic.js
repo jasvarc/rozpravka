@@ -13,6 +13,7 @@ const loginError = document.getElementById('loginError');
 const moralLessonInput = document.getElementById('moralLessonInput');
 const minLengthInput = document.getElementById('minLengthInput');
 const maxLengthInput = document.getElementById('maxLengthInput');
+const languageSelect = document.getElementById('languageSelect');
 const voiceSelect = document.getElementById('voiceSelect');
 const voiceRateInput = document.getElementById('voiceRateInput');
 const voiceRateLabel = document.getElementById('voiceRateLabel');
@@ -34,6 +35,15 @@ const TAG_LISTS = [
 let state = { allowedTopics: [], blockedTopics: [], girlNames: [], boyNames: [], adultNames: [] };
 let availableVoices = [];
 let pendingVoiceName = '';
+
+const TEST_VOICE_SAMPLES = {
+  sk: 'Toto je ukážka hlasu na čítanie rozprávok.',
+  en: 'This is a sample voice for reading stories.',
+};
+
+initLanguage().then(() => {
+  document.title = t('rodic_title');
+});
 
 function showOnly(section) {
   setupSection.style.display = 'none';
@@ -88,7 +98,7 @@ function populateVoiceSelect() {
 
   const defaultOption = document.createElement('option');
   defaultOption.value = '';
-  defaultOption.textContent = 'Predvolený (automaticky vybraný slovenský hlas)';
+  defaultOption.textContent = t('voice_default_option');
   voiceSelect.appendChild(defaultOption);
 
   availableVoices.forEach((v) => {
@@ -115,8 +125,9 @@ voiceRateInput.addEventListener('input', () => {
 testVoiceBtn.addEventListener('click', () => {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance('Toto je ukážka hlasu na čítanie rozprávok.');
-  utterance.lang = 'sk-SK';
+  const previewLang = languageSelect.value === 'en' ? 'en' : 'sk';
+  const utterance = new SpeechSynthesisUtterance(TEST_VOICE_SAMPLES[previewLang]);
+  utterance.lang = previewLang === 'en' ? 'en-US' : 'sk-SK';
   utterance.rate = Number(voiceRateInput.value) || 1;
   utterance.pitch = 1.05;
   const chosen = availableVoices.find((v) => v.name === voiceSelect.value);
@@ -125,7 +136,7 @@ testVoiceBtn.addEventListener('click', () => {
 });
 
 function formatDate(iso) {
-  return new Date(iso).toLocaleString('sk-SK');
+  return new Date(iso).toLocaleString(getLocaleTag());
 }
 
 async function loadSettings() {
@@ -140,6 +151,7 @@ async function loadSettings() {
   moralLessonInput.value = data.moralLessonNext || '';
   minLengthInput.value = data.minLength || 250;
   maxLengthInput.value = data.maxLength || 400;
+  languageSelect.value = data.language === 'en' ? 'en' : 'sk';
   pendingVoiceName = data.voiceName || '';
   voiceRateInput.value = data.voiceRate || 1;
   voiceRateLabel.textContent = Number(voiceRateInput.value).toFixed(2);
@@ -153,7 +165,10 @@ async function loadHistory() {
   const stories = await res.json();
   historyList.innerHTML = '';
   if (stories.length === 0) {
-    historyList.innerHTML = '<p class="subtitle">Zatiaľ žiadne rozprávky.</p>';
+    const empty = document.createElement('p');
+    empty.className = 'subtitle';
+    empty.textContent = t('history_empty');
+    historyList.appendChild(empty);
     return;
   }
   stories.slice(0, 20).forEach((s) => {
@@ -162,7 +177,9 @@ async function loadHistory() {
 
     const meta = document.createElement('div');
     meta.className = 'meta';
-    meta.textContent = s.moralLesson ? `${formatDate(s.createdAt)} · ponaučenie: ${s.moralLesson}` : formatDate(s.createdAt);
+    meta.textContent = s.moralLesson
+      ? `${formatDate(s.createdAt)} · ${t('history_moral_lesson_prefix')} ${s.moralLesson}`
+      : formatDate(s.createdAt);
 
     const title = document.createElement('strong');
     title.textContent = s.childPrompt;
@@ -196,7 +213,7 @@ setupBtn.addEventListener('click', async () => {
   });
   const data = await res.json();
   if (!res.ok) {
-    setupError.textContent = data.error || 'Niečo sa pokazilo.';
+    setupError.textContent = data.error || t('error_generic');
     setupError.style.display = 'block';
     return;
   }
@@ -213,7 +230,7 @@ loginBtn.addEventListener('click', async () => {
   });
   const data = await res.json();
   if (!res.ok) {
-    loginError.textContent = data.error || 'Niečo sa pokazilo.';
+    loginError.textContent = data.error || t('error_generic');
     loginError.style.display = 'block';
     loginPinInput.value = '';
     return;
@@ -228,7 +245,7 @@ saveSettingsBtn.addEventListener('click', async () => {
   const minLength = Number(minLengthInput.value);
   const maxLength = Number(maxLengthInput.value);
   if (!minLength || !maxLength || minLength > maxLength) {
-    settingsError.textContent = 'Dĺžka "od" musí byť vyplnená a nesmie byť väčšia ako dĺžka "do".';
+    settingsError.textContent = t('length_error');
     settingsError.style.display = 'block';
     return;
   }
@@ -247,15 +264,20 @@ saveSettingsBtn.addEventListener('click', async () => {
       girlNames: state.girlNames,
       boyNames: state.boyNames,
       adultNames: state.adultNames,
+      language: languageSelect.value,
     }),
   });
   const data = await res.json();
   if (!res.ok) {
-    settingsError.textContent = data.error || 'Niečo sa pokazilo.';
+    settingsError.textContent = data.error || t('error_generic');
     settingsError.style.display = 'block';
     return;
   }
-  settingsMsg.textContent = 'Nastavenia uložené.';
+  await initLanguage();
+  document.title = t('rodic_title');
+  populateVoiceSelect();
+  await loadHistory();
+  settingsMsg.textContent = t('settings_saved_msg');
   settingsMsg.style.display = 'block';
 });
 

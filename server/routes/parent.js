@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { getSettings, saveSettings } = require('../store');
+const { t } = require('../i18n');
 
 const router = express.Router();
 
@@ -19,11 +20,11 @@ router.get('/session', (req, res) => {
 router.post('/setup', (req, res) => {
   const settings = getSettings();
   if (settings.pinHash) {
-    return res.status(409).json({ error: 'PIN už je nastavený.' });
+    return res.status(409).json({ error: t('pinAlreadySet', settings.language) });
   }
   const { pin } = req.body;
   if (!isValidPin(pin)) {
-    return res.status(400).json({ error: 'PIN musí mať 4 až 6 číslic.' });
+    return res.status(400).json({ error: t('pinInvalid', settings.language) });
   }
   const pinHash = bcrypt.hashSync(pin, 10);
   saveSettings({ pinHash });
@@ -34,11 +35,11 @@ router.post('/setup', (req, res) => {
 router.post('/login', (req, res) => {
   const settings = getSettings();
   if (!settings.pinHash) {
-    return res.status(409).json({ error: 'PIN ešte nie je nastavený.' });
+    return res.status(409).json({ error: t('pinNotSet', settings.language) });
   }
   const { pin } = req.body;
   if (!isValidPin(pin) || !bcrypt.compareSync(pin, settings.pinHash)) {
-    return res.status(401).json({ error: 'Nesprávny PIN.' });
+    return res.status(401).json({ error: t('pinWrong', settings.language) });
   }
   req.session.parentAuthenticated = true;
   res.json({ ok: true });

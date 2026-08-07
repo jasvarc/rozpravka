@@ -8,27 +8,28 @@
 </head>
 <body>
   <div class="card">
-    <a href="index.html" class="back-link">&larr; Späť</a>
-    <h1>🧸 O čom má byť dnešná rozprávka?</h1>
-    <p class="subtitle">Napíš, o čom chceš počuť rozprávku, a ja ti ju vyrozprávam.</p>
+    <a href="index.html" class="back-link" data-i18n="back_link">&larr; Späť</a>
+    <h1 data-i18n="dieta_heading">🧸 O čom má byť dnešná rozprávka?</h1>
+    <p class="subtitle" data-i18n="dieta_subtitle">Napíš, o čom chceš počuť rozprávku, a ja ti ju vyrozprávam.</p>
 
     <div class="field">
-      <textarea id="promptInput" rows="3" placeholder="Napríklad: o drakovi, ktorý sa bál lietať..." maxlength="300"></textarea>
+      <textarea id="promptInput" rows="3" data-i18n-placeholder="dieta_prompt_placeholder" placeholder="Napríklad: o drakovi, ktorý sa bál lietať..." maxlength="300"></textarea>
     </div>
 
-    <button id="generateBtn">✨ Vytvor rozprávku</button>
+    <button id="generateBtn" data-i18n="dieta_generate_btn">✨ Vytvor rozprávku</button>
     <div id="errorBox" class="error" style="display: none"></div>
 
     <div id="storyBox" style="display: none">
       <div id="storyText" class="story-text"></div>
       <div class="actions-row">
-        <button id="readBtn">🔊 Prečítať nahlas</button>
-        <button id="stopBtn" class="secondary" style="display: none">⏹ Zastaviť</button>
-        <button id="newStoryBtn" class="secondary">📝 Nová rozprávka</button>
+        <button id="readBtn" data-i18n="dieta_read_btn">🔊 Prečítať nahlas</button>
+        <button id="stopBtn" class="secondary" style="display: none" data-i18n="dieta_stop_btn">⏹ Zastaviť</button>
+        <button id="newStoryBtn" class="secondary" data-i18n="dieta_new_story_btn">📝 Nová rozprávka</button>
       </div>
     </div>
   </div>
 
+  <script src="js/i18n.js"></script>
   <script src="js/dieta.js"></script>
 </body>
 </html>

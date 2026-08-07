@@ -6,6 +6,7 @@ DONE:
 - detsky web pocas citania zvyraznuje prave citane slovo (read-along)
 - rodic si moze v rodicovskej sekcii vybrat hlas a rychlost citania z dostupnych hlasov prehliadaca
 - rodic moze zadat odporucane dievcenske, chlapcenske a dospelacke mena pre hlavnych hrdinov
+- rodicovsky portal ma language selektor (slovencina/anglictina) - po ulozeni sa cela appka, generovane rozpravky aj predvoleny hlas pri citani prepnu do zvoleneho jazyka
 
 TODO:
 - detsky web bude pocas rozpravania generovat obrazky obsahujuce o com prave citany text je

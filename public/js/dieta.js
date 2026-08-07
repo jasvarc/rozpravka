@@ -11,9 +11,14 @@ let utterance = null;
 let storyRawText = '';
 let currentVoiceName = '';
 let currentVoiceRate = 1;
+let currentStoryLang = 'sk';
 let wordSpans = [];
 let wordCursor = 0;
 let highlightedSpan = null;
+
+initLanguage().then(() => {
+  document.title = t('dieta_title');
+});
 
 function showError(msg) {
   errorBox.textContent = msg;
@@ -69,12 +74,12 @@ function highlightAtCharIndex(charIndex) {
 async function generateStory() {
   const prompt = promptInput.value.trim();
   if (!prompt) {
-    showError('Napíš prosím, o čom má byť rozprávka.');
+    showError(t('dieta_error_empty_prompt'));
     return;
   }
   hideError();
   generateBtn.disabled = true;
-  generateBtn.innerHTML = '<span class="spinner"></span>Rozprávka sa píše...';
+  generateBtn.innerHTML = `<span class="spinner"></span>${t('dieta_generating')}`;
   storyBox.style.display = 'none';
   window.speechSynthesis.cancel();
 
@@ -90,14 +95,15 @@ async function generateStory() {
       data = JSON.parse(rawText);
     } catch (parseErr) {
       console.error('Neplatná odpoveď servera. HTTP status:', res.status, 'Telo odpovede:', rawText.slice(0, 1000));
-      throw new Error(`Server neodpovedal správne (HTTP ${res.status}). Skús to prosím o chvíľu znova.`);
+      throw new Error(`${t('dieta_error_bad_response')} (HTTP ${res.status})`);
     }
     if (!res.ok) {
-      throw new Error(data.error || 'Niečo sa pokazilo.');
+      throw new Error(data.error || t('error_generic'));
     }
     storyRawText = data.content;
     currentVoiceName = data.voiceName || '';
     currentVoiceRate = data.voiceRate || 1;
+    currentStoryLang = data.language === 'en' ? 'en' : 'sk';
     renderStoryText(storyRawText);
     resetHighlight();
     storyBox.style.display = 'block';
@@ -105,27 +111,27 @@ async function generateStory() {
     showError(err.message);
   } finally {
     generateBtn.disabled = false;
-    generateBtn.textContent = '✨ Vytvor rozprávku';
+    generateBtn.textContent = t('dieta_generate_btn');
   }
 }
 
 function readAloud() {
   if (!('speechSynthesis' in window)) {
-    showError('Tento prehliadač bohužiaľ nevie čítať nahlas.');
+    showError(t('dieta_error_no_tts'));
     return;
   }
   window.speechSynthesis.cancel();
   resetHighlight();
 
   utterance = new SpeechSynthesisUtterance(storyRawText);
-  utterance.lang = 'sk-SK';
+  utterance.lang = currentStoryLang === 'en' ? 'en-US' : 'sk-SK';
   utterance.rate = currentVoiceRate || 0.95;
   utterance.pitch = 1.05;
 
   const voices = window.speechSynthesis.getVoices();
   const chosenVoice =
     (currentVoiceName && voices.find((v) => v.name === currentVoiceName)) ||
-    voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('sk'));
+    voices.find((v) => v.lang && v.lang.toLowerCase().startsWith(currentStoryLang));
   if (chosenVoice) utterance.voice = chosenVoice;
 
   utterance.onboundary = (event) => {

@@ -7,6 +7,8 @@ const session = require('express-session');
 const storyRoutes = require('./routes/story');
 const parentRoutes = require('./routes/parent');
 const settingsRoutes = require('./routes/settings');
+const { getSettings } = require('./store');
+const { t } = require('./i18n');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,13 +42,21 @@ app.use('/api/settings', settingsRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+function currentLanguage() {
+  try {
+    return getSettings().language;
+  } catch (err) {
+    return 'sk';
+  }
+}
+
 app.use('/api', (req, res) => {
-  res.status(404).json({ error: 'Neznáma API cesta.' });
+  res.status(404).json({ error: t('unknownApiPath', currentLanguage()) });
 });
 
 app.use((err, req, res, next) => {
   console.error('Neočakávaná chyba:', err);
-  res.status(500).json({ error: 'Nastala neočakávaná chyba na serveri.' });
+  res.status(500).json({ error: t('unexpectedError', currentLanguage()) });
 });
 
 app.listen(PORT, HOST, () => {

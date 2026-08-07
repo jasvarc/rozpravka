@@ -2,9 +2,13 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames }) {
+function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language }) {
+  const isEnglish = language === 'en';
   const lines = [
-    'Si láskavý rozprávač, ktorý píše krátke upokojujúce rozprávky na dobrú noc pre malé deti v slovenčine.',
+    'Si láskavý rozprávač, ktorý píše krátke upokojujúce rozprávky na dobrú noc pre malé deti.',
+    isEnglish
+      ? 'IMPORTANT: Write the entire story in English, regardless of the language of these instructions.'
+      : 'DÔLEŽITÉ: Celú rozprávku napíš v slovenčine.',
     'Rozprávka musí byť primeraná veku, nesmie obsahovať nič strašidelné, násilné ani úzkostné - má dieťa upokojiť pred spaním.',
     `Dĺžka: približne ${minLength}-${maxLength} slov, jednoduchý jazyk, príjemný a pomalý záver, ktorý navodzuje spánok.`,
   ];
@@ -39,13 +43,17 @@ function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLengt
     lines.push(`Ak rozprávka obsahuje dospelú postavu (napr. rodič, starý rodič, iný dospelý) a potrebuje meno, uprednostni jedno z týchto mien: ${adultNames.join(', ')}.`);
   }
 
-  lines.push('Odpovedz iba samotným textom rozprávky, bez nadpisu a bez akéhokoľvek komentára navyše.');
+  lines.push(
+    isEnglish
+      ? 'Reply with only the story text itself, in English, with no title and no extra commentary.'
+      : 'Odpovedz iba samotným textom rozprávky, bez nadpisu a bez akéhokoľvek komentára navyše.'
+  );
 
   return lines.join('\n');
 }
 
-async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames }) {
-  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames });
+async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language }) {
+  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language });
   const maxTokens = Math.min(4000, Math.max(300, Math.round(maxLength * 4)));
 
   const message = await client.messages.create(

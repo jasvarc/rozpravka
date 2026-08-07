@@ -77,7 +77,9 @@ p.subtitle {
 
 textarea,
 input[type='text'],
-input[type='password'] {
+input[type='password'],
+input[type='number'],
+select {
   width: 100%;
   padding: 12px 14px;
   border-radius: 10px;
@@ -90,8 +92,14 @@ input[type='password'] {
 }
 
 textarea:focus,
-input:focus {
+input:focus,
+select:focus {
   outline: 2px solid var(--accent);
+}
+
+select option {
+  background: #171b38;
+  color: var(--text);
 }
 
 button {

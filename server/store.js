@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
   girlNames: [],
   boyNames: [],
   adultNames: [],
+  language: 'sk',
 };
 
 function ensureDataFiles() {
