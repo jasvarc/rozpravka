@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rodičovské nastavenia</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="card" style="max-width: 640px">
+    <a href="index.html" class="back-link">&larr; Späť</a>
+
+    <section id="setupSection" style="display: none">
+      <h1>🔒 Vytvor si PIN</h1>
+      <p class="subtitle">Tento PIN bude chrániť rodičovské nastavenia pred dieťaťom.</p>
+      <div class="field">
+        <label for="setupPinInput">Nový PIN (4-6 číslic)</label>
+        <input type="password" id="setupPinInput" class="pin-input" inputmode="numeric" maxlength="6" />
+      </div>
+      <button id="setupBtn">Nastaviť PIN</button>
+      <div id="setupError" class="error" style="display: none"></div>
+    </section>
+
+    <section id="loginSection" style="display: none">
+      <h1>🔒 Zadaj PIN</h1>
+      <div class="field">
+        <input type="password" id="loginPinInput" class="pin-input" inputmode="numeric" maxlength="6" />
+      </div>
+      <button id="loginBtn">Prihlásiť sa</button>
+      <div id="loginError" class="error" style="display: none"></div>
+    </section>
+
+    <section id="settingsSection" style="display: none">
+      <h1>👨‍👩‍👧 Rodičovské nastavenia</h1>
+
+      <div class="field">
+        <label>Povolené témy (ak necháš prázdne, povolené sú všetky okrem zakázaných)</label>
+        <div class="topic-list" id="allowedList"></div>
+        <div class="actions-row">
+          <input type="text" id="allowedInput" placeholder="napr. zvieratká, vesmír" style="flex: 1" />
+          <button id="addAllowedBtn" class="secondary">Pridať</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Zakázané témy</label>
+        <div class="topic-list" id="blockedList"></div>
+        <div class="actions-row">
+          <input type="text" id="blockedInput" placeholder="napr. strašidlá, vojna" style="flex: 1" />
+          <button id="addBlockedBtn" class="secondary">Pridať</button>
+        </div>
+      </div>
+
+      <div class="field checkbox-row">
+        <input type="checkbox" id="moralLessonCheckbox" />
+        <label for="moralLessonCheckbox" style="margin: 0">Zahrnúť mravné ponaučenie do ďalšej rozprávky</label>
+      </div>
+
+      <div class="actions-row">
+        <button id="saveSettingsBtn">💾 Uložiť nastavenia</button>
+        <button id="logoutBtn" class="secondary">Odhlásiť sa</button>
+      </div>
+      <div id="settingsMsg" class="success" style="display: none"></div>
+      <div id="settingsError" class="error" style="display: none"></div>
+
+      <div class="story-history">
+        <h2>📖 História rozprávok</h2>
+        <div id="historyList"></div>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/rodic.js"></script>
+</body>
+</html>

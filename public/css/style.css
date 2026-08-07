@@ -1,0 +1,256 @@
+:root {
+  --bg: #1b1f3b;
+  --bg-soft: #262b52;
+  --accent: #ffb703;
+  --accent-soft: #ffd166;
+  --text: #f4f1ff;
+  --text-dim: #b8b8d1;
+  --danger: #ff6b6b;
+  --success: #6bcb77;
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: radial-gradient(circle at top, #2a2f5c, var(--bg));
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--bg-soft);
+  border-radius: var(--radius);
+  padding: 32px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 1.6rem;
+}
+
+p.subtitle {
+  color: var(--text-dim);
+  margin-top: -8px;
+}
+
+.menu-links {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.menu-links a {
+  display: block;
+  text-align: center;
+  padding: 18px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #1b1f3b;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: transform 0.15s ease;
+}
+
+.menu-links a.secondary {
+  background: transparent;
+  border: 2px solid var(--accent-soft);
+  color: var(--accent-soft);
+}
+
+.menu-links a:hover {
+  transform: translateY(-2px);
+}
+
+textarea,
+input[type='text'],
+input[type='password'] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #3a3f6b;
+  background: #171b38;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+textarea:focus,
+input:focus {
+  outline: 2px solid var(--accent);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--accent);
+  color: #1b1f3b;
+  transition: opacity 0.15s ease;
+}
+
+button.secondary {
+  background: transparent;
+  border: 1px solid var(--accent-soft);
+  color: var(--accent-soft);
+}
+
+button.danger {
+  background: var(--danger);
+  color: white;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.field {
+  margin-bottom: 18px;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.story-text {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  background: #171b38;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.actions-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.error {
+  color: var(--danger);
+  margin-top: 10px;
+}
+
+.success {
+  color: var(--success);
+  margin-top: 10px;
+}
+
+.pin-input {
+  letter-spacing: 8px;
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
+.topic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.topic-chip {
+  background: #171b38;
+  border: 1px solid #3a3f6b;
+  border-radius: 999px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.topic-chip button {
+  background: none;
+  border: none;
+  color: var(--danger);
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-row input {
+  width: 20px;
+  height: 20px;
+}
+
+.story-history {
+  margin-top: 28px;
+  border-top: 1px solid #3a3f6b;
+  padding-top: 20px;
+}
+
+.story-history-item {
+  background: #171b38;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+}
+
+.story-history-item .meta {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,16 @@
+[Unit]
+Description=Rozpravkova appka na dobru noc
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__APP_DIR__
+ExecStart=/usr/bin/node server/index.js
+EnvironmentFile=__APP_DIR__/.env
+Restart=on-failure
+RestartSec=3
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

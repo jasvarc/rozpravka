@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rozprávka pre teba</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="card">
+    <a href="index.html" class="back-link">&larr; Späť</a>
+    <h1>🧸 O čom má byť dnešná rozprávka?</h1>
+    <p class="subtitle">Napíš, o čom chceš počuť rozprávku, a ja ti ju vyrozprávam.</p>
+
+    <div class="field">
+      <textarea id="promptInput" rows="3" placeholder="Napríklad: o drakovi, ktorý sa bál lietať..." maxlength="300"></textarea>
+    </div>
+
+    <button id="generateBtn">✨ Vytvor rozprávku</button>
+    <div id="errorBox" class="error" style="display: none"></div>
+
+    <div id="storyBox" style="display: none">
+      <div id="storyText" class="story-text"></div>
+      <div class="actions-row">
+        <button id="readBtn">🔊 Prečítať nahlas</button>
+        <button id="stopBtn" class="secondary" style="display: none">⏹ Zastaviť</button>
+        <button id="newStoryBtn" class="secondary">📝 Nová rozprávka</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/dieta.js"></script>
+</body>
+</html>
