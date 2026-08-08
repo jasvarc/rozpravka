@@ -10,6 +10,7 @@ const storyText = document.getElementById('storyText');
 const readBtn = document.getElementById('readBtn');
 const stopBtn = document.getElementById('stopBtn');
 const newStoryBtn = document.getElementById('newStoryBtn');
+const reportBtn = document.getElementById('reportBtn');
 const pastHistoryList = document.getElementById('pastHistoryList');
 
 const SOUND_SENTENCE_GAP = 2;
@@ -18,6 +19,7 @@ const childId = new URLSearchParams(window.location.search).get('child');
 
 let utterance = null;
 let storyRawText = '';
+let currentStoryId = null;
 let currentVoiceName = '';
 let currentVoiceRate = 1;
 let currentStoryLang = 'sk';
@@ -133,12 +135,29 @@ function highlightAtCharIndex(charIndex) {
   }
 }
 
+function resetReportButton(reported) {
+  reportBtn.disabled = !currentStoryId || reported;
+  reportBtn.textContent = reported ? t('dieta_report_done') : t('dieta_report_btn');
+}
+
+async function reportCurrentStory() {
+  if (!currentStoryId) return;
+  reportBtn.disabled = true;
+  try {
+    await fetch(`api/story/${currentStoryId}/report`, { method: 'POST' });
+    reportBtn.textContent = t('dieta_report_done');
+  } catch (err) {
+    reportBtn.disabled = false;
+  }
+}
+
 function applyStoryResponse(data) {
   storyRawText = data.content;
   currentVoiceName = data.voiceName || '';
   currentVoiceRate = data.voiceRate || 1;
   currentStoryLang = data.language === 'en' ? 'en' : 'sk';
   soundsEnabled = !!data.soundsEnabled;
+  currentStoryId = data.id || null;
   dynamicSoundMap = new Map();
   (data.soundCues || []).forEach((cue) => {
     if (cue && typeof cue.word === 'string' && typeof cue.type === 'string') {
@@ -150,6 +169,7 @@ function applyStoryResponse(data) {
   window.speechSynthesis.cancel();
   storyBox.style.display = 'block';
   storyBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  resetReportButton(!!data.reported);
 }
 
 async function parseJsonResponse(res) {
@@ -304,6 +324,8 @@ async function loadPastHistory() {
     showAgainBtn.textContent = t('dieta_show_again_btn');
     showAgainBtn.addEventListener('click', () => {
       applyStoryResponse({
+        id: s.id,
+        reported: s.reported,
         content: s.content,
         voiceName: snapshot.voiceName,
         voiceRate: snapshot.voiceRate,
@@ -385,8 +407,23 @@ async function loadPastHistory() {
     continueForm.appendChild(continueInput);
     continueForm.appendChild(continueActions);
 
+    const reportItemBtn = document.createElement('button');
+    reportItemBtn.className = 'secondary';
+    reportItemBtn.textContent = s.reported ? t('dieta_report_done') : t('dieta_report_btn');
+    reportItemBtn.disabled = !!s.reported;
+    reportItemBtn.addEventListener('click', async () => {
+      reportItemBtn.disabled = true;
+      try {
+        await fetch(`api/story/${s.id}/report`, { method: 'POST' });
+        reportItemBtn.textContent = t('dieta_report_done');
+      } catch (err) {
+        reportItemBtn.disabled = false;
+      }
+    });
+
     actions.appendChild(showAgainBtn);
     actions.appendChild(continueBtn);
+    actions.appendChild(reportItemBtn);
 
     item.appendChild(meta);
     item.appendChild(title);
@@ -400,6 +437,7 @@ generateBtn.addEventListener('click', generateStory);
 surpriseBtn.addEventListener('click', generateSurpriseStory);
 readBtn.addEventListener('click', readAloud);
 stopBtn.addEventListener('click', stopReading);
+reportBtn.addEventListener('click', reportCurrentStory);
 newStoryBtn.addEventListener('click', () => {
   window.speechSynthesis.cancel();
   resetHighlight();

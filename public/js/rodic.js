@@ -301,9 +301,13 @@ function renderStoryItem(s) {
   const meta = document.createElement('div');
   meta.className = 'meta';
   const favMark = s.favorite ? '⭐ ' : '';
+  const reportedMark = s.reported ? `${t('history_reported_badge')} · ` : '';
   meta.textContent = s.moralLesson
-    ? `${favMark}${formatDate(s.createdAt)} · ${t('history_moral_lesson_prefix')} ${s.moralLesson}`
-    : `${favMark}${formatDate(s.createdAt)}`;
+    ? `${reportedMark}${favMark}${formatDate(s.createdAt)} · ${t('history_moral_lesson_prefix')} ${s.moralLesson}`
+    : `${reportedMark}${favMark}${formatDate(s.createdAt)}`;
+  if (s.reported) {
+    meta.style.color = 'var(--danger)';
+  }
 
   const title = document.createElement('strong');
   title.textContent = s.childPrompt;
@@ -355,6 +359,48 @@ function renderStoryItem(s) {
   item.appendChild(title);
   item.appendChild(actions);
   item.appendChild(textBox);
+
+  if (s.reported) {
+    const resolveBtn = document.createElement('button');
+    resolveBtn.className = 'secondary';
+    resolveBtn.textContent = t('history_resolve_report_btn');
+    resolveBtn.style.marginTop = '8px';
+    resolveBtn.addEventListener('click', async () => {
+      await fetch(`api/story/${s.id}/dismiss-report`, { method: 'POST' });
+      await loadHistory();
+    });
+    item.appendChild(resolveBtn);
+
+    if (s.suggestedBlockedTopics && s.suggestedBlockedTopics.length > 0) {
+      const suggestionsLabel = document.createElement('p');
+      suggestionsLabel.className = 'subtitle';
+      suggestionsLabel.style.marginTop = '10px';
+      suggestionsLabel.textContent = t('history_reported_suggestions_label');
+      item.appendChild(suggestionsLabel);
+
+      const suggestionsList = document.createElement('div');
+      suggestionsList.className = 'topic-list';
+      s.suggestedBlockedTopics.forEach((topic) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'topic-chip';
+        chip.textContent = `+ ${topic}`;
+        chip.addEventListener('click', async () => {
+          chip.disabled = true;
+          await fetch(`api/story/${s.id}/add-blocked-topic`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic }),
+          });
+          chip.textContent = `✓ ${topic}`;
+          await loadSettings();
+        });
+        suggestionsList.appendChild(chip);
+      });
+      item.appendChild(suggestionsList);
+    }
+  }
+
   return item;
 }
 

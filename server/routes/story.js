@@ -1,6 +1,6 @@
 const express = require('express');
 const { getSettings, saveSettings, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild } = require('../store');
-const { generateStory, extractSoundCues, pickSurpriseTopic } = require('../claude');
+const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics } = require('../claude');
 const { t } = require('../i18n');
 
 const router = express.Router({ mergeParams: true });
@@ -16,6 +16,10 @@ function requireParentAuth(req, res, next) {
 function sanitizeCharacterNote(text) {
   if (typeof text !== 'string') return '';
   return text.trim().slice(0, 200);
+}
+
+function stripHistoryPrefix(text) {
+  return String(text || '').replace(/^(🎁|↳)\s*/, '');
 }
 
 async function runGeneration(tenant, settings, child, { childPrompt, previousContent, characterNote, continuesFrom, historyTitle }) {
@@ -166,12 +170,59 @@ router.get('/recent', (req, res, next) => {
   }
 });
 
+router.post('/:id/report', async (req, res) => {
+  const { tenant, id } = req.params;
+  const settings = getSettings(tenant);
+  const story = getStory(tenant, id);
+  if (!story) {
+    return res.status(404).json({ error: t('storyNotFound', settings.language) });
+  }
+
+  const suggestedBlockedTopics = await suggestBlockedTopics({
+    content: story.content,
+    childPrompt: stripHistoryPrefix(story.childPrompt),
+    language: settings.language,
+  });
+
+  updateStory(tenant, id, {
+    reported: true,
+    reportedAt: new Date().toISOString(),
+    suggestedBlockedTopics,
+  });
+  res.json({ ok: true });
+});
+
 router.get('/', requireParentAuth, (req, res, next) => {
   try {
     res.json(getStories(req.params.tenant));
   } catch (err) {
     next(err);
   }
+});
+
+router.post('/:id/add-blocked-topic', requireParentAuth, (req, res) => {
+  const { tenant, id } = req.params;
+  const settings = getSettings(tenant);
+  const story = getStory(tenant, id);
+  if (!story) {
+    return res.status(404).json({ error: t('storyNotFound', settings.language) });
+  }
+  const topic = typeof req.body.topic === 'string' ? req.body.topic.trim().slice(0, 60) : '';
+  if (!topic) {
+    return res.status(400).json({ error: t('promptRequired', settings.language) });
+  }
+  const blockedTopics = settings.blockedTopics || [];
+  const updatedSettings = blockedTopics.includes(topic) ? settings : saveSettings(tenant, { blockedTopics: [...blockedTopics, topic] });
+  res.json({ ok: true, blockedTopics: updatedSettings.blockedTopics });
+});
+
+router.post('/:id/dismiss-report', requireParentAuth, (req, res) => {
+  const { tenant, id } = req.params;
+  const updated = updateStory(tenant, id, { reported: false });
+  if (!updated) {
+    return res.status(404).json({ error: t('storyNotFound', getSettings(tenant).language) });
+  }
+  res.json({ ok: true });
 });
 
 router.put('/:id', requireParentAuth, (req, res) => {

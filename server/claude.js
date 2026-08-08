@@ -295,4 +295,67 @@ async function extractSoundCues({ content, language }) {
   }
 }
 
-module.exports = { generateStory, extractSoundCues, pickSurpriseTopic };
+async function suggestBlockedTopics({ content, childPrompt, language }) {
+  const isEnglish = language === 'en';
+  const system = isEnglish
+    ? 'A child was upset or scared by this bedtime story, and their parent reported it. Suggest 2 to 5 short topics or keywords (a single word or a very short phrase each, in English) that the parent could add to their "blocked topics" list to avoid similar stories in the future. Base them on what specifically in THIS story could have been upsetting (a specific creature, situation, emotion, or theme) - not generic advice.'
+    : 'Dieťa bolo touto rozprávkou na dobrú noc vystrašené alebo rozrušené a rodič ju nahlásil. Navrhni 2 až 5 krátkych tém alebo kľúčových slov (každé jedno slovo alebo veľmi krátka fráza, po slovensky), ktoré by rodič mohol pridať do zoznamu "zakázané témy", aby sa podobným rozprávkam v budúcnosti vyhol. Vychádzaj z toho, čo konkrétne v TEJTO rozprávke mohlo byť rozrušujúce (konkrétna bytosť, situácia, emócia alebo téma) - nie zo všeobecných rád.';
+
+  try {
+    const message = await client.messages.create(
+      {
+        model: 'claude-sonnet-5',
+        max_tokens: 300,
+        system,
+        tools: [
+          {
+            name: 'suggest_blocked_topics',
+            description: "Suggest short topic/keyword candidates for the parent's blocked-topics list.",
+            input_schema: {
+              type: 'object',
+              properties: {
+                topics: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+              },
+              required: ['topics'],
+            },
+          },
+        ],
+        tool_choice: { type: 'tool', name: 'suggest_blocked_topics' },
+        messages: [
+          {
+            role: 'user',
+            content: `Téma, ktorú si dieťa vyžiadalo: ${childPrompt}\n\nText rozprávky:\n${content}`,
+          },
+        ],
+      },
+      { timeout: 20_000 }
+    );
+
+    const toolBlock = message.content.find((block) => block.type === 'tool_use' && block.name === 'suggest_blocked_topics');
+    if (!toolBlock || !toolBlock.input) return [];
+
+    let topics = toolBlock.input.topics;
+    if (typeof topics === 'string') {
+      try {
+        const parsed = JSON.parse(topics);
+        topics = Array.isArray(parsed) ? parsed : parsed.topics;
+      } catch (err) {
+        topics = null;
+      }
+    }
+    if (!Array.isArray(topics)) return [];
+
+    return topics
+      .filter((topic) => typeof topic === 'string' && topic.trim())
+      .map((topic) => topic.trim().slice(0, 60))
+      .slice(0, 5);
+  } catch (err) {
+    console.error('Chyba pri návrhu zakázaných tém:', err);
+    return [];
+  }
+}
+
+module.exports = { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics };

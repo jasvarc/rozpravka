@@ -215,6 +215,8 @@ label {
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 400;
 }
 
 .topic-chip button {

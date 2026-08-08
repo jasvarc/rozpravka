@@ -84,6 +84,7 @@ function addStory(tenant, story) {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
     createdAt: new Date().toISOString(),
     favorite: false,
+    reported: false,
     ...story,
   };
   stories.unshift(record);
