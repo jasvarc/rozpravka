@@ -17,3 +17,8 @@ DONE:
 TODO:
 - detsky web bude pocas rozpravania generovat obrazky obsahujuce o com prave citany text je
 - rodicovsky veb umozni "naucit sa hlas rodica"
+- nastavenia (povolene/zakazane temy, hlas, rychlost citania...) pojdu nastavit aj individualne pre kazde dieta, nie len spolocne za celu rodinu - ak dieta nema vlastny override, pouziju sa rodinne nastavenia
+- rodic bude vediet nastavit denny limit poctu vygenerovanych rozpravok na dieta (ochrana pred zbytocnym cerpanim API kreditu aj jemna motivacia ist spat)
+- na detskej stranke pribudne tlacidlo "Prekvap ma", ktore namiesto vlastnej temy vygeneruje rozpravku na nahodnu temu
+- dieta bude vediet rozpravku "nahlasit" rodicovi (napr. ak ho vystrasila) - rodic v portali uvidi nahlasene rozpravky a moze jednym kliknutim pridat danu temu do zakazanych
+- rodic bude vediet nastavit "cas na spanie", po ktorom detska stranka namiesto generovania zobrazi upokojujucu spravu a znemozni dalsie rozpravky do rana
