@@ -34,6 +34,22 @@
       <h1 data-i18n="settings_heading">👨‍👩‍👧 Rodičovské nastavenia</h1>
 
       <div class="field">
+        <label data-i18n="children_label">Deti v rodine</label>
+        <div id="childrenList"></div>
+        <form id="childForm" class="actions-row" style="flex-wrap: wrap">
+          <input type="text" id="childNameInput" data-i18n-placeholder="child_name_placeholder" placeholder="Meno" style="flex: 2; min-width: 120px" />
+          <input type="number" id="childAgeInput" data-i18n-placeholder="child_age_placeholder" placeholder="Vek" min="0" max="18" style="width: 80px" />
+          <select id="childGenderInput" style="width: 130px">
+            <option value="girl" data-i18n="child_gender_girl">Dievča</option>
+            <option value="boy" data-i18n="child_gender_boy">Chlapec</option>
+          </select>
+          <button type="submit" id="childSubmitBtn" class="secondary" data-i18n="child_add_btn">➕ Pridať dieťa</button>
+          <button type="button" id="childCancelBtn" class="secondary" data-i18n="child_cancel_btn" style="display: none">Zrušiť</button>
+        </form>
+        <div id="childFormError" class="error" style="display: none"></div>
+      </div>
+
+      <div class="field">
         <label data-i18n="allowed_topics_label">Povolené témy (ak necháš prázdne, povolené sú všetky okrem zakázaných)</label>
         <div class="topic-list" id="allowedList"></div>
         <div class="actions-row">

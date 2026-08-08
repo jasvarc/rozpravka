@@ -8,16 +8,53 @@ const SOUND_TYPES = [
   'mouse', 'rabbit', 'squirrel', 'magic', 'footsteps', 'laugh', 'splash', 'door',
 ];
 
-function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote }) {
+function ageBandInstruction(age, isEnglish) {
+  const n = Number(age);
+  if (!Number.isFinite(n) || n <= 6) {
+    return isEnglish
+      ? 'The listener is a young child (6 or younger) - use very simple language, short sentences, and a classic fairy-tale style with a simple plot (animals, gentle magic, simple little adventures).'
+      : 'Poslucháč/poslucháčka je malé dieťa (6 rokov alebo menej) - použi veľmi jednoduchý jazyk, krátke vety a klasický rozprávkový štýl s jednoduchým dejom (zvieratká, jemné kúzla, jednoduché dobrodružstvá).';
+  }
+  if (n <= 11) {
+    return isEnglish
+      ? `The listener is ${n} years old - you can use somewhat richer language and a more interesting plot than for a toddler, but it should still clearly be a bedtime fairy tale for a child, not a complex story.`
+      : `Poslucháč/poslucháčka má ${n} rokov - môžeš použiť o niečo bohatší jazyk a zaujímavejší dej ako pre batoľa, stále to však má byť rozprávka na dobrú noc pre dieťa, nie zložitý príbeh.`;
+  }
+  return isEnglish
+    ? `The listener is ${n} years old - a teenager. Instead of a childish "fairy tale", write a calm, soothing STORY appropriate for their age, with a more mature, less childish tone (it doesn't need magical creatures or classic fairy-tale elements - it can be a more realistic, reflective, or gently adventurous story). It must still avoid anything scary, violent, or anxiety-inducing, and end in a calm, sleep-inducing way.`
+    : `Poslucháč/poslucháčka má ${n} rokov - je to teenager. Namiesto detskej "rozprávky" napíš pokojný, upokojujúci PRÍBEH primeraný jeho veku, s vyspelejším, menej detinským tónom (nemusí obsahovať čarovné bytosti ani klasické rozprávkové prvky, pokojne môže ísť o realistickejší, introspektívny alebo jemne dobrodružný príbeh). Stále však nesmie obsahovať nič strašidelné, násilné ani úzkostné, a má sa skončiť pokojne, uspávajúco.`;
+}
+
+function addressInstruction(name, gender, isEnglish) {
+  if (isEnglish) {
+    return `The listener's name is ${name}${gender ? ` (${gender === 'girl' ? 'a girl' : 'a boy'})` : ''}. Feel free to use their name in the story, and if you address them directly (e.g. at the end), use pronouns matching their gender.`;
+  }
+  const genderWord = gender === 'boy' ? 'chlapec' : 'dievča';
+  const example = gender === 'boy' ? '"môj milý", "usni sladko, chlapče"' : '"moja milá", "usni sladko, dievčatko"';
+  return `Poslucháč/poslucháčka sa volá ${name} a je to ${genderWord}. Pokojne použi jeho/jej meno priamo v príbehu, a keď sa v rozprávke priamo prihovoríš dieťaťu (napr. v úvode či závere), osloví ho v zodpovedajúcom gramatickom rode (napr. ${example}).`;
+}
+
+function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote, childName, childAge, childGender }) {
   const isEnglish = language === 'en';
   const lines = [
-    'Si láskavý rozprávač, ktorý píše krátke upokojujúce rozprávky na dobrú noc pre malé deti.',
+    isEnglish
+      ? 'You are a kind narrator who tells calm bedtime stories to children and young listeners.'
+      : 'Si láskavý rozprávač, ktorý deťom a mladým poslucháčom rozpráva pokojné príbehy na dobrú noc.',
     isEnglish
       ? 'IMPORTANT: Write the entire story in English, regardless of the language of these instructions.'
       : 'DÔLEŽITÉ: Celú rozprávku napíš v slovenčine.',
-    'Rozprávka musí byť primeraná veku, nesmie obsahovať nič strašidelné, násilné ani úzkostné - má dieťa upokojiť pred spaním.',
-    `Dĺžka: približne ${minLength}-${maxLength} slov, jednoduchý jazyk, príjemný a pomalý záver, ktorý navodzuje spánok.`,
+    ageBandInstruction(childAge, isEnglish),
+    isEnglish
+      ? 'The story must not contain anything scary, violent, or anxiety-inducing - it should calm the listener before sleep.'
+      : 'Príbeh nesmie obsahovať nič strašidelné, násilné ani úzkostné - má poslucháča upokojiť pred spaním.',
+    isEnglish
+      ? `Length: approximately ${minLength}-${maxLength} words, a pleasant, slow ending that induces sleep.`
+      : `Dĺžka: približne ${minLength}-${maxLength} slov, príjemný a pomalý záver, ktorý navodzuje spánok.`,
   ];
+
+  if (childName) {
+    lines.push(addressInstruction(childName, childGender, isEnglish));
+  }
 
   if (previousContent) {
     lines.push(
@@ -73,8 +110,8 @@ function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLengt
   return lines.join('\n');
 }
 
-async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote }) {
-  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote });
+async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote, childName, childAge, childGender }) {
+  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote, childName, childAge, childGender });
   const maxTokens = Math.min(4000, Math.max(300, Math.round(maxLength * 4)));
 
   const userContent = previousContent

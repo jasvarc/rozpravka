@@ -1,5 +1,5 @@
 const express = require('express');
-const { getSettings, saveSettings, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories } = require('../store');
+const { getSettings, saveSettings, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild } = require('../store');
 const { generateStory, extractSoundCues } = require('../claude');
 const { t } = require('../i18n');
 
@@ -18,7 +18,7 @@ function sanitizeCharacterNote(text) {
   return text.trim().slice(0, 200);
 }
 
-async function runGeneration(tenant, settings, { childPrompt, previousContent, characterNote, continuesFrom, historyTitle }) {
+async function runGeneration(tenant, settings, child, { childPrompt, previousContent, characterNote, continuesFrom, historyTitle }) {
   const moralLesson = (settings.moralLessonNext || '').trim();
 
   const content = await generateStory({
@@ -34,6 +34,9 @@ async function runGeneration(tenant, settings, { childPrompt, previousContent, c
     language: settings.language,
     previousContent,
     characterNote,
+    childName: child.name,
+    childAge: child.age,
+    childGender: child.gender,
   });
 
   if (moralLesson) {
@@ -41,6 +44,8 @@ async function runGeneration(tenant, settings, { childPrompt, previousContent, c
   }
 
   const record = addStory(tenant, {
+    childId: child.id,
+    childName: child.name,
     childPrompt: historyTitle,
     moralLesson: moralLesson || null,
     content,
@@ -75,14 +80,18 @@ router.post('/', async (req, res) => {
     return res.status(500).json({ error: t('unexpectedError', 'sk') });
   }
 
-  const { prompt } = req.body;
+  const { prompt, childId } = req.body;
   if (typeof prompt !== 'string' || !prompt.trim()) {
     return res.status(400).json({ error: t('promptRequired', settings.language) });
+  }
+  const child = typeof childId === 'string' ? getChild(tenant, childId) : null;
+  if (!child) {
+    return res.status(400).json({ error: t('childRequired', settings.language) });
   }
   const childPrompt = prompt.trim().slice(0, 300);
 
   try {
-    const result = await runGeneration(tenant, settings, { childPrompt, historyTitle: childPrompt });
+    const result = await runGeneration(tenant, settings, child, { childPrompt, historyTitle: childPrompt });
     res.json(result);
   } catch (err) {
     console.error('Chyba pri generovaní rozprávky:', err);
@@ -106,10 +115,14 @@ router.post('/continue', async (req, res) => {
   if (!previousStory) {
     return res.status(404).json({ error: t('storyNotFound', settings.language) });
   }
+  const child = previousStory.childId ? getChild(tenant, previousStory.childId) : null;
+  if (!child) {
+    return res.status(404).json({ error: t('childNotFound', settings.language) });
+  }
 
   try {
     const historyTitle = `↳ ${previousStory.childPrompt}`.slice(0, 300);
-    const result = await runGeneration(tenant, settings, {
+    const result = await runGeneration(tenant, settings, child, {
       childPrompt: previousStory.childPrompt,
       previousContent: previousStory.content,
       characterNote,
@@ -127,12 +140,17 @@ router.get('/recent', (req, res, next) => {
   const { tenant } = req.params;
   try {
     const settings = getSettings(tenant);
+    const childId = typeof req.query.child === 'string' ? req.query.child : null;
+    const child = childId ? getChild(tenant, childId) : null;
+    if (!child) {
+      return res.status(400).json({ error: t('childRequired', settings.language) });
+    }
     res.json({
       voiceName: settings.voiceName || '',
       voiceRate: settings.voiceRate || 1,
       language: settings.language || 'sk',
       soundsEnabled: !!settings.soundsEnabled,
-      stories: getRecentAndFavoriteStories(tenant, 5),
+      stories: getRecentAndFavoriteStories(tenant, childId, 5),
     });
   } catch (err) {
     next(err);

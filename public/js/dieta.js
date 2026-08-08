@@ -1,3 +1,6 @@
+const childNotFoundBox = document.getElementById('childNotFoundBox');
+const childContent = document.getElementById('childContent');
+const childGreeting = document.getElementById('childGreeting');
 const promptInput = document.getElementById('promptInput');
 const generateBtn = document.getElementById('generateBtn');
 const errorBox = document.getElementById('errorBox');
@@ -9,6 +12,8 @@ const newStoryBtn = document.getElementById('newStoryBtn');
 const pastHistoryList = document.getElementById('pastHistoryList');
 
 const SOUND_SENTENCE_GAP = 2;
+
+const childId = new URLSearchParams(window.location.search).get('child');
 
 let utterance = null;
 let storyRawText = '';
@@ -22,12 +27,34 @@ let wordCursor = 0;
 let highlightedSpan = null;
 let lastSoundSentence = -Infinity;
 
-initLanguage().then(() => {
+async function initChild() {
+  await initLanguage();
   document.title = t('dieta_title');
-  loadPastHistory();
-});
 
-promptInput.focus();
+  if (!childId) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  try {
+    const res = await fetch('api/children');
+    const list = res.ok ? await res.json() : [];
+    const child = list.find((c) => c.id === childId);
+    if (!child) {
+      childNotFoundBox.style.display = 'block';
+      return;
+    }
+    childGreeting.textContent = `${t('dieta_greeting_prefix')} ${child.name}!`;
+    childContent.style.display = 'block';
+    promptInput.focus();
+    loadPastHistory();
+  } catch (err) {
+    console.error('Nepodarilo sa overiť dieťa:', err);
+    childNotFoundBox.style.display = 'block';
+  }
+}
+
+initChild();
 
 promptInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -150,7 +177,7 @@ async function generateStory() {
     const res = await fetch('api/story', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, childId }),
     });
     const data = await parseJsonResponse(res);
     if (!res.ok) {
@@ -214,7 +241,7 @@ function formatHistoryDate(iso) {
 }
 
 async function loadPastHistory() {
-  const res = await fetch('api/story/recent');
+  const res = await fetch(`api/story/recent?child=${encodeURIComponent(childId)}`);
   if (!res.ok) return;
   const data = await res.json();
   const snapshot = {

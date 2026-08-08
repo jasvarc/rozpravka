@@ -41,6 +41,10 @@ function storiesPath(tenant) {
   return path.join(tenantDir(tenant), 'stories.json');
 }
 
+function childrenPath(tenant) {
+  return path.join(tenantDir(tenant), 'children.json');
+}
+
 function ensureTenantFiles(tenant) {
   const dir = tenantDir(tenant);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -49,6 +53,9 @@ function ensureTenantFiles(tenant) {
   }
   if (!fs.existsSync(storiesPath(tenant))) {
     fs.writeFileSync(storiesPath(tenant), JSON.stringify([], null, 2));
+  }
+  if (!fs.existsSync(childrenPath(tenant))) {
+    fs.writeFileSync(childrenPath(tenant), JSON.stringify([], null, 2));
   }
 }
 
@@ -105,13 +112,57 @@ function deleteStory(tenant, id) {
   return true;
 }
 
-function getRecentAndFavoriteStories(tenant, recentCount = 5) {
-  const stories = getStories(tenant);
+function getRecentAndFavoriteStories(tenant, childId, recentCount = 5) {
+  const stories = getStories(tenant).filter((s) => s.childId === childId);
   const recent = stories.slice(0, recentCount);
   const favorites = stories.filter((s) => s.favorite);
   const merged = new Map();
   [...recent, ...favorites].forEach((s) => merged.set(s.id, s));
   return Array.from(merged.values()).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+function getChildren(tenant) {
+  ensureTenantFiles(tenant);
+  return JSON.parse(fs.readFileSync(childrenPath(tenant), 'utf-8'));
+}
+
+function saveChildrenList(tenant, list) {
+  fs.writeFileSync(childrenPath(tenant), JSON.stringify(list, null, 2));
+}
+
+function getChild(tenant, id) {
+  return getChildren(tenant).find((c) => c.id === id) || null;
+}
+
+function addChild(tenant, { name, age, gender }) {
+  const children = getChildren(tenant);
+  const record = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    name,
+    age,
+    gender,
+    createdAt: new Date().toISOString(),
+  };
+  children.push(record);
+  saveChildrenList(tenant, children);
+  return record;
+}
+
+function updateChild(tenant, id, partial) {
+  const children = getChildren(tenant);
+  const idx = children.findIndex((c) => c.id === id);
+  if (idx === -1) return null;
+  children[idx] = { ...children[idx], ...partial };
+  saveChildrenList(tenant, children);
+  return children[idx];
+}
+
+function deleteChild(tenant, id) {
+  const children = getChildren(tenant);
+  const filtered = children.filter((c) => c.id !== id);
+  if (filtered.length === children.length) return false;
+  saveChildrenList(tenant, filtered);
+  return true;
 }
 
 function tenantExists(tenant) {
@@ -187,6 +238,11 @@ module.exports = {
   updateStory,
   deleteStory,
   getRecentAndFavoriteStories,
+  getChildren,
+  getChild,
+  addChild,
+  updateChild,
+  deleteChild,
   tenantExists,
   listTenants,
   deleteTenant,

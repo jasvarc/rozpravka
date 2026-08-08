@@ -25,6 +25,18 @@ const settingsMsg = document.getElementById('settingsMsg');
 const settingsError = document.getElementById('settingsError');
 const historyList = document.getElementById('historyList');
 
+const childrenList = document.getElementById('childrenList');
+const childForm = document.getElementById('childForm');
+const childNameInput = document.getElementById('childNameInput');
+const childAgeInput = document.getElementById('childAgeInput');
+const childGenderInput = document.getElementById('childGenderInput');
+const childSubmitBtn = document.getElementById('childSubmitBtn');
+const childCancelBtn = document.getElementById('childCancelBtn');
+const childFormError = document.getElementById('childFormError');
+
+let children = [];
+let editingChildId = null;
+
 const TAG_LISTS = [
   { key: 'allowedTopics', list: document.getElementById('allowedList'), input: document.getElementById('allowedInput'), btn: document.getElementById('addAllowedBtn') },
   { key: 'blockedTopics', list: document.getElementById('blockedList'), input: document.getElementById('blockedInput'), btn: document.getElementById('addBlockedBtn') },
@@ -142,6 +154,111 @@ function formatDate(iso) {
   return new Date(iso).toLocaleString(getLocaleTag());
 }
 
+function resetChildForm() {
+  editingChildId = null;
+  childForm.reset();
+  childGenderInput.value = 'girl';
+  childSubmitBtn.textContent = t('child_add_btn');
+  childCancelBtn.style.display = 'none';
+  childFormError.style.display = 'none';
+}
+
+function renderChildren() {
+  childrenList.innerHTML = '';
+  if (children.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'subtitle';
+    empty.textContent = t('children_empty');
+    childrenList.appendChild(empty);
+    return;
+  }
+  children.forEach((child) => {
+    const item = document.createElement('div');
+    item.className = 'story-history-item';
+
+    const meta = document.createElement('strong');
+    const genderLabel = child.gender === 'boy' ? t('child_gender_boy') : t('child_gender_girl');
+    meta.textContent = `${child.name} · ${child.age} ${t('child_age_years_suffix')} · ${genderLabel}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'actions-row';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'secondary';
+    editBtn.textContent = t('child_edit_btn');
+    editBtn.addEventListener('click', () => startEditChild(child));
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'danger';
+    deleteBtn.textContent = t('child_delete_btn');
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm(t('child_delete_confirm'))) return;
+      await fetch(`api/children/${child.id}`, { method: 'DELETE' });
+      if (editingChildId === child.id) resetChildForm();
+      await loadChildren();
+      await loadHistory();
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+
+    item.appendChild(meta);
+    item.appendChild(actions);
+    childrenList.appendChild(item);
+  });
+}
+
+function startEditChild(child) {
+  editingChildId = child.id;
+  childNameInput.value = child.name;
+  childAgeInput.value = child.age;
+  childGenderInput.value = child.gender === 'boy' ? 'boy' : 'girl';
+  childSubmitBtn.textContent = t('child_save_btn');
+  childCancelBtn.style.display = 'inline-block';
+  childFormError.style.display = 'none';
+  childNameInput.focus();
+}
+
+async function loadChildren() {
+  const res = await fetch('api/children');
+  if (!res.ok) return;
+  children = await res.json();
+  renderChildren();
+}
+
+childCancelBtn.addEventListener('click', () => resetChildForm());
+
+childForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  childFormError.style.display = 'none';
+
+  const name = childNameInput.value.trim();
+  const age = Number(childAgeInput.value);
+  const gender = childGenderInput.value;
+  if (!name || !Number.isFinite(age) || age < 0 || age > 18 || (gender !== 'boy' && gender !== 'girl')) {
+    childFormError.textContent = t('child_form_error');
+    childFormError.style.display = 'block';
+    return;
+  }
+
+  const url = editingChildId ? `api/children/${editingChildId}` : 'api/children';
+  const method = editingChildId ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, age, gender }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    childFormError.textContent = data.error || t('error_generic');
+    childFormError.style.display = 'block';
+    return;
+  }
+  resetChildForm();
+  await loadChildren();
+  await loadHistory();
+});
+
 async function loadSettings() {
   const res = await fetch('api/settings');
   if (!res.ok) return;
@@ -163,6 +280,70 @@ async function loadSettings() {
   renderTagLists();
 }
 
+function renderStoryItem(s) {
+  const item = document.createElement('div');
+  item.className = 'story-history-item';
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const favMark = s.favorite ? '⭐ ' : '';
+  meta.textContent = s.moralLesson
+    ? `${favMark}${formatDate(s.createdAt)} · ${t('history_moral_lesson_prefix')} ${s.moralLesson}`
+    : `${favMark}${formatDate(s.createdAt)}`;
+
+  const title = document.createElement('strong');
+  title.textContent = s.childPrompt;
+
+  const textBox = document.createElement('div');
+  textBox.className = 'story-text';
+  textBox.style.display = 'none';
+  textBox.style.marginTop = '10px';
+  textBox.textContent = s.content;
+
+  const actions = document.createElement('div');
+  actions.className = 'actions-row';
+
+  const toggleTextBtn = document.createElement('button');
+  toggleTextBtn.className = 'secondary';
+  toggleTextBtn.textContent = t('history_show_text_btn');
+  toggleTextBtn.addEventListener('click', () => {
+    const showing = textBox.style.display !== 'none';
+    textBox.style.display = showing ? 'none' : 'block';
+    toggleTextBtn.textContent = showing ? t('history_show_text_btn') : t('history_hide_text_btn');
+  });
+
+  const favBtn = document.createElement('button');
+  favBtn.className = 'secondary';
+  favBtn.textContent = s.favorite ? t('history_favorite_off_btn') : t('history_favorite_on_btn');
+  favBtn.addEventListener('click', async () => {
+    await fetch(`api/story/${s.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ favorite: !s.favorite }),
+    });
+    await loadHistory();
+  });
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'danger';
+  deleteBtn.textContent = t('history_delete_btn');
+  deleteBtn.addEventListener('click', async () => {
+    if (!confirm(t('history_delete_confirm'))) return;
+    await fetch(`api/story/${s.id}`, { method: 'DELETE' });
+    await loadHistory();
+  });
+
+  actions.appendChild(toggleTextBtn);
+  actions.appendChild(favBtn);
+  actions.appendChild(deleteBtn);
+
+  item.appendChild(meta);
+  item.appendChild(title);
+  item.appendChild(actions);
+  item.appendChild(textBox);
+  return item;
+}
+
 async function loadHistory() {
   const res = await fetch('api/story');
   if (!res.ok) return;
@@ -175,68 +356,24 @@ async function loadHistory() {
     historyList.appendChild(empty);
     return;
   }
-  stories.slice(0, 50).forEach((s) => {
-    const item = document.createElement('div');
-    item.className = 'story-history-item';
 
-    const meta = document.createElement('div');
-    meta.className = 'meta';
-    const favMark = s.favorite ? '⭐ ' : '';
-    meta.textContent = s.moralLesson
-      ? `${favMark}${formatDate(s.createdAt)} · ${t('history_moral_lesson_prefix')} ${s.moralLesson}`
-      : `${favMark}${formatDate(s.createdAt)}`;
+  const knownChildIds = new Set(children.map((c) => c.id));
+  const groups = children.map((child) => ({
+    heading: child.name,
+    stories: stories.filter((s) => s.childId === child.id),
+  }));
+  const orphaned = stories.filter((s) => !s.childId || !knownChildIds.has(s.childId));
+  if (orphaned.length > 0) {
+    const fallbackName = orphaned[0].childName;
+    groups.push({ heading: fallbackName ? `${t('history_removed_child_heading')} (${fallbackName})` : t('history_removed_child_heading'), stories: orphaned });
+  }
 
-    const title = document.createElement('strong');
-    title.textContent = s.childPrompt;
-
-    const textBox = document.createElement('div');
-    textBox.className = 'story-text';
-    textBox.style.display = 'none';
-    textBox.style.marginTop = '10px';
-    textBox.textContent = s.content;
-
-    const actions = document.createElement('div');
-    actions.className = 'actions-row';
-
-    const toggleTextBtn = document.createElement('button');
-    toggleTextBtn.className = 'secondary';
-    toggleTextBtn.textContent = t('history_show_text_btn');
-    toggleTextBtn.addEventListener('click', () => {
-      const showing = textBox.style.display !== 'none';
-      textBox.style.display = showing ? 'none' : 'block';
-      toggleTextBtn.textContent = showing ? t('history_show_text_btn') : t('history_hide_text_btn');
-    });
-
-    const favBtn = document.createElement('button');
-    favBtn.className = 'secondary';
-    favBtn.textContent = s.favorite ? t('history_favorite_off_btn') : t('history_favorite_on_btn');
-    favBtn.addEventListener('click', async () => {
-      await fetch(`api/story/${s.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ favorite: !s.favorite }),
-      });
-      await loadHistory();
-    });
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'danger';
-    deleteBtn.textContent = t('history_delete_btn');
-    deleteBtn.addEventListener('click', async () => {
-      if (!confirm(t('history_delete_confirm'))) return;
-      await fetch(`api/story/${s.id}`, { method: 'DELETE' });
-      await loadHistory();
-    });
-
-    actions.appendChild(toggleTextBtn);
-    actions.appendChild(favBtn);
-    actions.appendChild(deleteBtn);
-
-    item.appendChild(meta);
-    item.appendChild(title);
-    item.appendChild(actions);
-    item.appendChild(textBox);
-    historyList.appendChild(item);
+  groups.forEach((group) => {
+    if (group.stories.length === 0) return;
+    const heading = document.createElement('h3');
+    heading.textContent = group.heading;
+    historyList.appendChild(heading);
+    group.stories.slice(0, 50).forEach((s) => historyList.appendChild(renderStoryItem(s)));
   });
 }
 
@@ -249,7 +386,10 @@ async function checkSession() {
     showOnly(loginSection);
   } else {
     showOnly(settingsSection);
-    await Promise.all([loadSettings(), loadHistory()]);
+    resetChildForm();
+    await loadSettings();
+    await loadChildren();
+    await loadHistory();
   }
 }
 

@@ -7,6 +7,7 @@ const session = require('express-session');
 const storyRoutes = require('./routes/story');
 const parentRoutes = require('./routes/parent');
 const settingsRoutes = require('./routes/settings');
+const childrenRoutes = require('./routes/children');
 const adminRoutes = require('./routes/admin');
 const { isValidTenantName } = require('./store');
 const { t } = require('./i18n');
@@ -62,6 +63,7 @@ function requireAdminAuth(req, res, next) {
 app.use('/:tenant/api/story', storyRoutes);
 app.use('/:tenant/api/parent', parentRoutes);
 app.use('/:tenant/api/settings', settingsRoutes);
+app.use('/:tenant/api/children', childrenRoutes);
 app.use('/admin/api/admin', requireAdminAuth, adminRoutes);
 
 // Admin nie je bezna rodina - presmeruj jeho stranky na samostatny admin portal.

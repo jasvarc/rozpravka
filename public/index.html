@@ -10,17 +10,13 @@
   <div class="card">
     <h1 data-i18n="index_heading">🌙 Rozprávky na dobrú noc</h1>
     <p class="subtitle" data-i18n="index_subtitle">Vyber si, kto sa prihlasuje.</p>
+    <div class="menu-links" id="childLinks"></div>
     <div class="menu-links">
-      <a href="dieta.html" data-i18n="index_child_link">🧸 Som dieťa</a>
       <a href="rodic.html" class="secondary" data-i18n="index_parent_link">🔒 Som rodič</a>
     </div>
   </div>
 
   <script src="js/i18n.js"></script>
-  <script>
-    initLanguage().then(() => {
-      document.title = t('index_title');
-    });
-  </script>
+  <script src="js/index.js"></script>
 </body>
 </html>
