@@ -51,6 +51,8 @@ function showOnly(section) {
   loginSection.style.display = 'none';
   settingsSection.style.display = 'none';
   section.style.display = 'block';
+  if (section === setupSection) setupPinInput.focus();
+  else if (section === loginSection) loginPinInput.focus();
 }
 
 function renderChips(container, items, onRemove) {
@@ -204,6 +206,20 @@ async function checkSession() {
     await Promise.all([loadSettings(), loadHistory()]);
   }
 }
+
+setupPinInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    setupBtn.click();
+  }
+});
+
+loginPinInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    loginBtn.click();
+  }
+});
 
 setupBtn.addEventListener('click', async () => {
   setupError.style.display = 'none';

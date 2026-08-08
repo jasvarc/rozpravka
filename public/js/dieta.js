@@ -25,6 +25,15 @@ initLanguage().then(() => {
   document.title = t('dieta_title');
 });
 
+promptInput.focus();
+
+promptInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    generateBtn.click();
+  }
+});
+
 function showError(msg) {
   errorBox.textContent = msg;
   errorBox.style.display = 'block';
