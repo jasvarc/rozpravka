@@ -16,3 +16,4 @@ DONE:
 TODO:
 - detsky web bude pocas rozpravania generovat obrazky obsahujuce o com prave citany text je
 - rodicovsky veb umozni "naucit sa hlas rodica"
+- rodicovsky portal sa neodhlasi ked dam spat ... cize dieta sa vie dostat na rodicovsky portal ak nebol restartovany browser
