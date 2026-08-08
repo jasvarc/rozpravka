@@ -30,6 +30,8 @@ const childForm = document.getElementById('childForm');
 const childNameInput = document.getElementById('childNameInput');
 const childAgeInput = document.getElementById('childAgeInput');
 const childGenderInput = document.getElementById('childGenderInput');
+const childIntensityInput = document.getElementById('childIntensityInput');
+const childIntensityLabel = document.getElementById('childIntensityLabel');
 const childSubmitBtn = document.getElementById('childSubmitBtn');
 const childCancelBtn = document.getElementById('childCancelBtn');
 const childFormError = document.getElementById('childFormError');
@@ -168,10 +170,26 @@ function formatDate(iso) {
   return new Date(iso).toLocaleString(getLocaleTag());
 }
 
+function intensityLabel(value) {
+  const n = Number(value);
+  const v = Number.isFinite(n) ? n : 50;
+  if (v <= 20) return t('child_intensity_band_1');
+  if (v <= 40) return t('child_intensity_band_2');
+  if (v <= 60) return t('child_intensity_band_3');
+  if (v <= 80) return t('child_intensity_band_4');
+  return t('child_intensity_band_5');
+}
+
+childIntensityInput.addEventListener('input', () => {
+  childIntensityLabel.textContent = intensityLabel(childIntensityInput.value);
+});
+
 function resetChildForm() {
   editingChildId = null;
   childForm.reset();
   childGenderInput.value = 'girl';
+  childIntensityInput.value = 50;
+  childIntensityLabel.textContent = intensityLabel(50);
   childSubmitBtn.textContent = t('child_add_btn');
   childCancelBtn.style.display = 'none';
   childFormError.style.display = 'none';
@@ -192,7 +210,7 @@ function renderChildren() {
 
     const meta = document.createElement('strong');
     const genderLabel = child.gender === 'boy' ? t('child_gender_boy') : t('child_gender_girl');
-    meta.textContent = `${child.name} · ${child.age} ${t('child_age_years_suffix')} · ${genderLabel}`;
+    meta.textContent = `${child.name} · ${child.age} ${t('child_age_years_suffix')} · ${genderLabel} · ${intensityLabel(child.intensity)}`;
 
     const actions = document.createElement('div');
     actions.className = 'actions-row';
@@ -227,6 +245,8 @@ function startEditChild(child) {
   childNameInput.value = child.name;
   childAgeInput.value = child.age;
   childGenderInput.value = child.gender === 'boy' ? 'boy' : 'girl';
+  childIntensityInput.value = typeof child.intensity === 'number' ? child.intensity : 50;
+  childIntensityLabel.textContent = intensityLabel(childIntensityInput.value);
   childSubmitBtn.textContent = t('child_save_btn');
   childCancelBtn.style.display = 'inline-block';
   childFormError.style.display = 'none';
@@ -249,6 +269,7 @@ childForm.addEventListener('submit', async (e) => {
   const name = childNameInput.value.trim();
   const age = Number(childAgeInput.value);
   const gender = childGenderInput.value;
+  const intensity = Number(childIntensityInput.value);
   if (!name || !Number.isFinite(age) || age < 0 || age > 18 || (gender !== 'boy' && gender !== 'girl')) {
     childFormError.textContent = t('child_form_error');
     childFormError.style.display = 'block';
@@ -260,7 +281,7 @@ childForm.addEventListener('submit', async (e) => {
   const res = await fetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, age, gender }),
+    body: JSON.stringify({ name, age, gender, intensity }),
   });
   const data = await res.json();
   if (!res.ok) {

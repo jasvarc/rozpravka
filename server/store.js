@@ -135,13 +135,14 @@ function getChild(tenant, id) {
   return getChildren(tenant).find((c) => c.id === id) || null;
 }
 
-function addChild(tenant, { name, age, gender }) {
+function addChild(tenant, { name, age, gender, intensity }) {
   const children = getChildren(tenant);
   const record = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
     name,
     age,
     gender,
+    intensity: typeof intensity === 'number' ? intensity : 50,
     createdAt: new Date().toISOString(),
   };
   children.push(record);

@@ -15,6 +15,7 @@ DONE:
 - BUGFIX: rodicovsky aj admin portal sa po odchode zo stranky (tlacidlo spat, zatvorenie karty, zadanie inej URL) automaticky odhlasia, takze pri navrate treba znovu zadat PIN. Predtym prihlasenie zostavalo v session platne, takze dieta sa po tom, co rodic odisiel z rodicovskeho portalu tlacidlom spat, vedelo dostat do rodicovskych nastaveni bez PINu
 - na detskej stranke pribudlo tlacidlo "🎁 Prekvap ma" vedla "Vytvor rozpravku" - nevyzaduje napisanie vlastnej temy. Ak ma rodina nastavene povolene temy, nahodne vyberie jednu z nich; inak nahodne vyberie z vstavaneho zoznamu tem, ktory je rozdeleny na "detsky" (do 11 rokov) a "teenagersky" (12+) vyber, zodpovedajuci existujucemu vekovemu prisposobeniu rozpravok. V historii je takato rozpravka oznacena ikonkou 🎁
 - dieta moze rozpravku "nahlasit" rodicovi (tlacidlo "😟 Nahlasit rodicovi" pri prave vygenerovanej aj pri kazdej starsej rozpravke v historii) - napr. ak ho vystrasila alebo sa mu nepacila. Po nahlaseni Claude analyzuje text konkretnej rozpravky a navrhne 2-5 konkretnych tem/slov, ktore ju mohli rozrusit. Rodic v portali pri nahlasenej rozpravke vidi tieto navrhy ako klikatelne "+ slovo" cipy - jednym kliknutim sa dane slovo pridá do zakazanych tem (bez potreby copy/paste), a tlacidlom "✔️ Vybavene" nahlasenie odignoruje/zavrie
+- rodic vie pre kazde dieta nastavit intenzitu/naladu rozpravky posuvnikom "pokojna <-> dobrodruznejsia" (5 pasiem: velmi pokojna, pokojna, vyvazena, dobrodruznejsia, velmi dobrodruzna). Je to hodnota individualna pre kazde dieta (nie spolocna za rodinu) - uklada sa priamo pri danom dietati v rodicovskom portali, spolu s menom/vekom/pohlavim, a rovnako sa zobrazuje aj v prehlade "Deti v rodine"
 
 TODO:
 1. detsky web bude pocas rozpravania generovat obrazky obsahujuce o com prave citany text je
@@ -23,4 +24,3 @@ TODO:
 4. rodic bude vediet nastavit denny limit poctu vygenerovanych rozpravok na dieta (ochrana pred zbytocnym cerpanim API kreditu aj jemna motivacia ist spat)
 5. rodic bude vediet nastavit "cas na spanie", po ktorom detska stranka namiesto generovania zobrazi upokojujucu spravu a znemozni dalsie rozpravky do rana
 6. rodicovsky portal zobrazi tyzdenny suhrn za kazde dieta (pocet vygenerovanych rozpravok, priemerna dlzka, najcastejsie temy/postavy z historie)
-7. rodic bude vediet namiesto (alebo popri) zoznamu povolenych/zakazanych tem nastavit intenzitu/naladu rozpravky posuvnikom "pokojna <-> dobrodruznejsia"

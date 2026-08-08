@@ -41,6 +41,7 @@ async function runGeneration(tenant, settings, child, { childPrompt, previousCon
     childName: child.name,
     childAge: child.age,
     childGender: child.gender,
+    childIntensity: child.intensity,
   });
 
   if (moralLesson) {

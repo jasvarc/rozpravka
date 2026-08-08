@@ -43,6 +43,16 @@
             <option value="girl" data-i18n="child_gender_girl">Dievča</option>
             <option value="boy" data-i18n="child_gender_boy">Chlapec</option>
           </select>
+          <div style="flex-basis: 100%; margin-top: 4px">
+            <label for="childIntensityInput" style="font-size: 0.85rem; color: var(--text-dim)">
+              <span data-i18n="child_intensity_label">Intenzita rozprávky</span>: <span id="childIntensityLabel">Vyvážená</span>
+            </label>
+            <input type="range" id="childIntensityInput" min="0" max="100" step="5" value="50" style="width: 100%" />
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim)">
+              <span data-i18n="child_intensity_calm">😌 Pokojná</span>
+              <span data-i18n="child_intensity_adventurous">🚀 Dobrodružnejšia</span>
+            </div>
+          </div>
           <button type="submit" id="childSubmitBtn" class="secondary" data-i18n="child_add_btn">➕ Pridať dieťa</button>
           <button type="button" id="childCancelBtn" class="secondary" data-i18n="child_cancel_btn" style="display: none">Zrušiť</button>
         </form>

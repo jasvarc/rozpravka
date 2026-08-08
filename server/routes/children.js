@@ -27,6 +27,12 @@ function sanitizeGender(value) {
   return value === 'boy' || value === 'girl' ? value : null;
 }
 
+function sanitizeIntensity(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 50;
+  return Math.min(100, Math.max(0, Math.round(n)));
+}
+
 router.get('/', (req, res) => {
   res.json(getChildren(req.params.tenant));
 });
@@ -36,10 +42,11 @@ router.post('/', requireParentAuth, (req, res) => {
   const name = sanitizeName(req.body.name);
   const age = sanitizeAge(req.body.age);
   const gender = sanitizeGender(req.body.gender);
+  const intensity = sanitizeIntensity(req.body.intensity);
   if (!name || age === null || !gender) {
     return res.status(400).json({ error: t('childInvalid', getSettings(tenant).language) });
   }
-  const child = addChild(tenant, { name, age, gender });
+  const child = addChild(tenant, { name, age, gender, intensity });
   res.json(child);
 });
 
@@ -48,10 +55,11 @@ router.put('/:id', requireParentAuth, (req, res) => {
   const name = sanitizeName(req.body.name);
   const age = sanitizeAge(req.body.age);
   const gender = sanitizeGender(req.body.gender);
+  const intensity = sanitizeIntensity(req.body.intensity);
   if (!name || age === null || !gender) {
     return res.status(400).json({ error: t('childInvalid', getSettings(tenant).language) });
   }
-  const updated = updateChild(tenant, id, { name, age, gender });
+  const updated = updateChild(tenant, id, { name, age, gender, intensity });
   if (!updated) {
     return res.status(404).json({ error: t('childNotFound', getSettings(tenant).language) });
   }

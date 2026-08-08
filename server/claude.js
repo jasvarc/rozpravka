@@ -113,6 +113,35 @@ function ageBandInstruction(age, isEnglish) {
     : `Poslucháč/poslucháčka má ${n} rokov - je to teenager. Namiesto detskej "rozprávky" napíš pokojný, upokojujúci PRÍBEH primeraný jeho veku, s vyspelejším, menej detinským tónom (nemusí obsahovať čarovné bytosti ani klasické rozprávkové prvky, pokojne môže ísť o realistickejší, introspektívny alebo jemne dobrodružný príbeh). Stále však nesmie obsahovať nič strašidelné, násilné ani úzkostné, a má sa skončiť pokojne, uspávajúco.`;
 }
 
+function intensityInstruction(intensity, isEnglish) {
+  const n = Number(intensity);
+  const value = Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 50;
+
+  if (value <= 20) {
+    return isEnglish
+      ? 'Story intensity: keep it VERY calm - almost no tension or adventure, just a gentle, soothing description of a peaceful moment or activity.'
+      : 'Intenzita rozprávky: drž ju VEĽMI pokojnú - takmer žiadne napätie ani dobrodružstvo, len jemný, upokojujúci opis pokojnej chvíle alebo činnosti.';
+  }
+  if (value <= 40) {
+    return isEnglish
+      ? 'Story intensity: keep it calm - only very mild, gentle challenges that resolve quickly and peacefully.'
+      : 'Intenzita rozprávky: drž ju pokojnú - iba veľmi mierne, jemné výzvy, ktoré sa rýchlo a pokojne vyriešia.';
+  }
+  if (value <= 60) {
+    return isEnglish
+      ? 'Story intensity: a balanced tone - a small adventure or gentle challenge is fine, as long as it resolves warmly.'
+      : 'Intenzita rozprávky: vyvážený tón - malé dobrodružstvo alebo jemná výzva je v poriadku, nech sa vyrieši v teple.';
+  }
+  if (value <= 80) {
+    return isEnglish
+      ? 'Story intensity: more adventurous - an engaging adventure or exploration with some mild suspense is welcome, as long as it stays safe and ends calmly.'
+      : 'Intenzita rozprávky: dobrodružnejšia - pokojne zahrň pútavé dobrodružstvo alebo objavovanie s miernym napätím, pokiaľ zostane bezpečné a skončí sa pokojne.';
+  }
+  return isEnglish
+    ? 'Story intensity: quite adventurous - a lively, exciting adventure with real exploration and mild suspense is welcome, though it must still stay age-appropriate, never scary or violent, and end in a calm, sleep-inducing way.'
+    : 'Intenzita rozprávky: dosť dobrodružná - pokojne zahrň živé, vzrušujúce dobrodružstvo so skutočným objavovaním a miernym napätím, musí však zostať primerané veku, nikdy nie strašidelné či násilné, a skončiť sa pokojne, uspávajúco.';
+}
+
 function addressInstruction(name, gender, isEnglish) {
   if (isEnglish) {
     return `The listener's name is ${name}${gender ? ` (${gender === 'girl' ? 'a girl' : 'a boy'})` : ''}. Feel free to use their name in the story, and if you address them directly (e.g. at the end), use pronouns matching their gender.`;
@@ -122,7 +151,7 @@ function addressInstruction(name, gender, isEnglish) {
   return `Poslucháč/poslucháčka sa volá ${name} a je to ${genderWord}. Pokojne použi jeho/jej meno priamo v príbehu, a keď sa v rozprávke priamo prihovoríš dieťaťu (napr. v úvode či závere), osloví ho v zodpovedajúcom gramatickom rode (napr. ${example}).`;
 }
 
-function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote, childName, childAge, childGender }) {
+function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote, childName, childAge, childGender, childIntensity }) {
   const isEnglish = language === 'en';
   const lines = [
     isEnglish
@@ -132,6 +161,7 @@ function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLengt
       ? 'IMPORTANT: Write the entire story in English, regardless of the language of these instructions.'
       : 'DÔLEŽITÉ: Celú rozprávku napíš v slovenčine.',
     ageBandInstruction(childAge, isEnglish),
+    intensityInstruction(childIntensity, isEnglish),
     isEnglish
       ? 'The story must not contain anything scary, violent, or anxiety-inducing - it should calm the listener before sleep.'
       : 'Príbeh nesmie obsahovať nič strašidelné, násilné ani úzkostné - má poslucháča upokojiť pred spaním.',
@@ -198,8 +228,8 @@ function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLengt
   return lines.join('\n');
 }
 
-async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote, childName, childAge, childGender }) {
-  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote, childName, childAge, childGender });
+async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote, childName, childAge, childGender, childIntensity }) {
+  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote, childName, childAge, childGender, childIntensity });
   const maxTokens = Math.min(4000, Math.max(300, Math.round(maxLength * 4)));
 
   const userContent = previousContent
