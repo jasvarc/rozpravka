@@ -7,14 +7,18 @@ const readBtn = document.getElementById('readBtn');
 const stopBtn = document.getElementById('stopBtn');
 const newStoryBtn = document.getElementById('newStoryBtn');
 
+const SOUND_SENTENCE_GAP = 2;
+
 let utterance = null;
 let storyRawText = '';
 let currentVoiceName = '';
 let currentVoiceRate = 1;
 let currentStoryLang = 'sk';
+let soundsEnabled = false;
 let wordSpans = [];
 let wordCursor = 0;
 let highlightedSpan = null;
+let lastSoundSentence = -Infinity;
 
 initLanguage().then(() => {
   document.title = t('dieta_title');
@@ -35,17 +39,23 @@ function renderStoryText(text) {
   const wordRegex = /\S+/g;
   let match;
   let lastIndex = 0;
+  let sentenceIndex = 0;
   while ((match = wordRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      storyText.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+      const gap = text.slice(lastIndex, match.index);
+      storyText.appendChild(document.createTextNode(gap));
     }
     const span = document.createElement('span');
     span.className = 'story-word';
     span.textContent = match[0];
     span.dataset.start = match.index;
+    span.dataset.sentence = sentenceIndex;
     storyText.appendChild(span);
     wordSpans.push(span);
     lastIndex = match.index + match[0].length;
+    if (/[.!?]/.test(match[0])) {
+      sentenceIndex += 1;
+    }
   }
   if (lastIndex < text.length) {
     storyText.appendChild(document.createTextNode(text.slice(lastIndex)));
@@ -56,6 +66,17 @@ function resetHighlight() {
   if (highlightedSpan) highlightedSpan.classList.remove('story-word-active');
   highlightedSpan = null;
   wordCursor = 0;
+  lastSoundSentence = -Infinity;
+}
+
+function maybeTriggerSound(wordSpan) {
+  if (!soundsEnabled || !wordSpan) return;
+  const sentenceIndex = Number(wordSpan.dataset.sentence);
+  if (sentenceIndex - lastSoundSentence < SOUND_SENTENCE_GAP) return;
+  const soundType = matchSoundForWord(wordSpan.textContent, currentStoryLang);
+  if (!soundType) return;
+  lastSoundSentence = sentenceIndex;
+  playSoundEffect(soundType);
 }
 
 function highlightAtCharIndex(charIndex) {
@@ -104,6 +125,7 @@ async function generateStory() {
     currentVoiceName = data.voiceName || '';
     currentVoiceRate = data.voiceRate || 1;
     currentStoryLang = data.language === 'en' ? 'en' : 'sk';
+    soundsEnabled = !!data.soundsEnabled;
     renderStoryText(storyRawText);
     resetHighlight();
     storyBox.style.display = 'block';
@@ -122,6 +144,7 @@ function readAloud() {
   }
   window.speechSynthesis.cancel();
   resetHighlight();
+  if (soundsEnabled) getAudioContext();
 
   utterance = new SpeechSynthesisUtterance(storyRawText);
   utterance.lang = currentStoryLang === 'en' ? 'en-US' : 'sk-SK';
@@ -136,6 +159,7 @@ function readAloud() {
 
   utterance.onboundary = (event) => {
     highlightAtCharIndex(event.charIndex);
+    maybeTriggerSound(wordSpans[wordCursor]);
   };
 
   utterance.onend = () => {

@@ -18,6 +18,7 @@ const voiceSelect = document.getElementById('voiceSelect');
 const voiceRateInput = document.getElementById('voiceRateInput');
 const voiceRateLabel = document.getElementById('voiceRateLabel');
 const testVoiceBtn = document.getElementById('testVoiceBtn');
+const soundsEnabledInput = document.getElementById('soundsEnabledInput');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const settingsMsg = document.getElementById('settingsMsg');
@@ -152,6 +153,7 @@ async function loadSettings() {
   minLengthInput.value = data.minLength || 250;
   maxLengthInput.value = data.maxLength || 400;
   languageSelect.value = data.language === 'en' ? 'en' : 'sk';
+  soundsEnabledInput.checked = !!data.soundsEnabled;
   pendingVoiceName = data.voiceName || '';
   voiceRateInput.value = data.voiceRate || 1;
   voiceRateLabel.textContent = Number(voiceRateInput.value).toFixed(2);
@@ -265,6 +267,7 @@ saveSettingsBtn.addEventListener('click', async () => {
       boyNames: state.boyNames,
       adultNames: state.adultNames,
       language: languageSelect.value,
+      soundsEnabled: soundsEnabledInput.checked,
     }),
   });
   const data = await res.json();

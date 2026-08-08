@@ -68,6 +68,7 @@ router.put('/', requireParentAuth, (req, res) => {
     boyNames,
     adultNames,
     language,
+    soundsEnabled,
   } = req.body;
   const current = getSettings();
 
@@ -89,6 +90,7 @@ router.put('/', requireParentAuth, (req, res) => {
     boyNames: sanitizeTopicList(boyNames),
     adultNames: sanitizeTopicList(adultNames),
     language: sanitizeLanguage(language, current.language),
+    soundsEnabled: !!soundsEnabled,
   });
   const { pinHash, ...safe } = updated;
   res.json(safe);

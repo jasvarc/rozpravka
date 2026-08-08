@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS = {
   boyNames: [],
   adultNames: [],
   language: 'sk',
+  soundsEnabled: false,
 };
 
 function ensureDataFiles() {

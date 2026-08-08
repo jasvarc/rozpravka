@@ -59,6 +59,7 @@ router.post('/', async (req, res) => {
       voiceName: settings.voiceName || '',
       voiceRate: settings.voiceRate || 1,
       language: settings.language || 'sk',
+      soundsEnabled: !!settings.soundsEnabled,
     });
   } catch (err) {
     console.error('Chyba pri generovaní rozprávky:', err);
