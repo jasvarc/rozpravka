@@ -38,6 +38,10 @@ app.use(
   })
 );
 
+// Zdielane assety (css/js) su dostupne aj bez :tenant prefixu, pre welcome.html na koreni.
+app.use('/css', express.static(path.join(PUBLIC_DIR, 'css')));
+app.use('/js', express.static(path.join(PUBLIC_DIR, 'js')));
+
 // Kazda routa s :tenant prejde touto validaciou - nespravny nazov = 400 hned na zaciatku.
 app.param('tenant', (req, res, next, value) => {
   const normalized = String(value).toLowerCase();
@@ -63,7 +67,7 @@ app.use('/admin/api/admin', requireAdminAuth, adminRoutes);
 // Admin nie je bezna rodina - presmeruj jeho stranky na samostatny admin portal.
 app.use('/:tenant', (req, res, next) => {
   if (req.params.tenant === 'admin' && ['/', '/index.html', '/dieta.html', '/rodic.html'].includes(req.path)) {
-    return res.redirect('/admin/admin.html');
+    return res.redirect('admin.html');
   }
   next();
 });
