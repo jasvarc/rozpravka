@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div class="card">
+  <div class="card" style="max-width: 640px">
     <a href="index.html" class="back-link" data-i18n="back_link">&larr; Späť</a>
     <h1 data-i18n="dieta_heading">🧸 O čom má byť dnešná rozprávka?</h1>
     <p class="subtitle" data-i18n="dieta_subtitle">Napíš, o čom chceš počuť rozprávku, a ja ti ju vyrozprávam.</p>
@@ -18,6 +18,11 @@
 
     <button id="generateBtn" data-i18n="dieta_generate_btn">✨ Vytvor rozprávku</button>
     <div id="errorBox" class="error" style="display: none"></div>
+
+    <div class="story-history">
+      <h2 data-i18n="dieta_history_heading">📖 Staršie rozprávky</h2>
+      <div id="pastHistoryList"></div>
+    </div>
 
     <div id="storyBox" style="display: none">
       <div id="storyText" class="story-text"></div>

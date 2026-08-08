@@ -6,6 +6,7 @@ const storyText = document.getElementById('storyText');
 const readBtn = document.getElementById('readBtn');
 const stopBtn = document.getElementById('stopBtn');
 const newStoryBtn = document.getElementById('newStoryBtn');
+const pastHistoryList = document.getElementById('pastHistoryList');
 
 const SOUND_SENTENCE_GAP = 2;
 
@@ -23,6 +24,7 @@ let lastSoundSentence = -Infinity;
 
 initLanguage().then(() => {
   document.title = t('dieta_title');
+  loadPastHistory();
 });
 
 promptInput.focus();
@@ -103,6 +105,35 @@ function highlightAtCharIndex(charIndex) {
   }
 }
 
+function applyStoryResponse(data) {
+  storyRawText = data.content;
+  currentVoiceName = data.voiceName || '';
+  currentVoiceRate = data.voiceRate || 1;
+  currentStoryLang = data.language === 'en' ? 'en' : 'sk';
+  soundsEnabled = !!data.soundsEnabled;
+  dynamicSoundMap = new Map();
+  (data.soundCues || []).forEach((cue) => {
+    if (cue && typeof cue.word === 'string' && typeof cue.type === 'string') {
+      dynamicSoundMap.set(normalizeWord(cue.word), cue.type);
+    }
+  });
+  renderStoryText(storyRawText);
+  resetHighlight();
+  window.speechSynthesis.cancel();
+  storyBox.style.display = 'block';
+  storyBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function parseJsonResponse(res) {
+  const rawText = await res.text();
+  try {
+    return JSON.parse(rawText);
+  } catch (parseErr) {
+    console.error('Neplatná odpoveď servera. HTTP status:', res.status, 'Telo odpovede:', rawText.slice(0, 1000));
+    throw new Error(`${t('dieta_error_bad_response')} (HTTP ${res.status})`);
+  }
+}
+
 async function generateStory() {
   const prompt = promptInput.value.trim();
   if (!prompt) {
@@ -121,31 +152,12 @@ async function generateStory() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt }),
     });
-    const rawText = await res.text();
-    let data;
-    try {
-      data = JSON.parse(rawText);
-    } catch (parseErr) {
-      console.error('Neplatná odpoveď servera. HTTP status:', res.status, 'Telo odpovede:', rawText.slice(0, 1000));
-      throw new Error(`${t('dieta_error_bad_response')} (HTTP ${res.status})`);
-    }
+    const data = await parseJsonResponse(res);
     if (!res.ok) {
       throw new Error(data.error || t('error_generic'));
     }
-    storyRawText = data.content;
-    currentVoiceName = data.voiceName || '';
-    currentVoiceRate = data.voiceRate || 1;
-    currentStoryLang = data.language === 'en' ? 'en' : 'sk';
-    soundsEnabled = !!data.soundsEnabled;
-    dynamicSoundMap = new Map();
-    (data.soundCues || []).forEach((cue) => {
-      if (cue && typeof cue.word === 'string' && typeof cue.type === 'string') {
-        dynamicSoundMap.set(normalizeWord(cue.word), cue.type);
-      }
-    });
-    renderStoryText(storyRawText);
-    resetHighlight();
-    storyBox.style.display = 'block';
+    applyStoryResponse(data);
+    loadPastHistory();
   } catch (err) {
     showError(err.message);
   } finally {
@@ -195,6 +207,144 @@ function stopReading() {
   readBtn.style.display = 'inline-block';
   stopBtn.style.display = 'none';
   resetHighlight();
+}
+
+function formatHistoryDate(iso) {
+  return new Date(iso).toLocaleString(getLocaleTag());
+}
+
+async function loadPastHistory() {
+  const res = await fetch('api/story/recent');
+  if (!res.ok) return;
+  const data = await res.json();
+  const snapshot = {
+    voiceName: data.voiceName || '',
+    voiceRate: data.voiceRate || 1,
+    language: data.language === 'en' ? 'en' : 'sk',
+    soundsEnabled: !!data.soundsEnabled,
+  };
+  const stories = data.stories || [];
+
+  pastHistoryList.innerHTML = '';
+  if (stories.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'subtitle';
+    empty.textContent = t('dieta_history_empty');
+    pastHistoryList.appendChild(empty);
+    return;
+  }
+
+  stories.forEach((s) => {
+    const item = document.createElement('div');
+    item.className = 'story-history-item';
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = s.favorite
+      ? `${formatHistoryDate(s.createdAt)} · ${t('dieta_favorite_badge')}`
+      : formatHistoryDate(s.createdAt);
+
+    const title = document.createElement('strong');
+    title.textContent = s.childPrompt;
+
+    const actions = document.createElement('div');
+    actions.className = 'actions-row';
+
+    const showAgainBtn = document.createElement('button');
+    showAgainBtn.className = 'secondary';
+    showAgainBtn.textContent = t('dieta_show_again_btn');
+    showAgainBtn.addEventListener('click', () => {
+      applyStoryResponse({
+        content: s.content,
+        voiceName: snapshot.voiceName,
+        voiceRate: snapshot.voiceRate,
+        language: snapshot.language,
+        soundsEnabled: snapshot.soundsEnabled,
+        soundCues: s.soundCues || [],
+      });
+    });
+
+    const continueBtn = document.createElement('button');
+    continueBtn.className = 'secondary';
+    continueBtn.textContent = t('dieta_continue_btn');
+
+    const continueForm = document.createElement('div');
+    continueForm.style.display = 'none';
+    continueForm.style.marginTop = '8px';
+
+    const continueInput = document.createElement('textarea');
+    continueInput.rows = 2;
+    continueInput.placeholder = t('dieta_continue_placeholder');
+    continueInput.maxLength = 200;
+
+    const continueActions = document.createElement('div');
+    continueActions.className = 'actions-row';
+
+    const continueConfirmBtn = document.createElement('button');
+    continueConfirmBtn.textContent = t('dieta_continue_confirm_btn');
+
+    const continueCancelBtn = document.createElement('button');
+    continueCancelBtn.className = 'secondary';
+    continueCancelBtn.textContent = t('dieta_continue_cancel_btn');
+
+    continueBtn.addEventListener('click', () => {
+      const showing = continueForm.style.display !== 'none';
+      continueForm.style.display = showing ? 'none' : 'block';
+      if (!showing) continueInput.focus();
+    });
+
+    continueCancelBtn.addEventListener('click', () => {
+      continueForm.style.display = 'none';
+      continueInput.value = '';
+    });
+
+    continueConfirmBtn.addEventListener('click', async () => {
+      hideError();
+      continueConfirmBtn.disabled = true;
+      continueConfirmBtn.innerHTML = `<span class="spinner"></span>${t('dieta_continue_generating')}`;
+      try {
+        const res = await fetch('api/story/continue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ previousStoryId: s.id, characterNote: continueInput.value.trim() }),
+        });
+        const resData = await parseJsonResponse(res);
+        if (!res.ok) {
+          throw new Error(resData.error || t('error_generic'));
+        }
+        continueForm.style.display = 'none';
+        continueInput.value = '';
+        applyStoryResponse(resData);
+        loadPastHistory();
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        continueConfirmBtn.disabled = false;
+        continueConfirmBtn.textContent = t('dieta_continue_confirm_btn');
+      }
+    });
+
+    continueInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        continueConfirmBtn.click();
+      }
+    });
+
+    continueActions.appendChild(continueConfirmBtn);
+    continueActions.appendChild(continueCancelBtn);
+    continueForm.appendChild(continueInput);
+    continueForm.appendChild(continueActions);
+
+    actions.appendChild(showAgainBtn);
+    actions.appendChild(continueBtn);
+
+    item.appendChild(meta);
+    item.appendChild(title);
+    item.appendChild(actions);
+    item.appendChild(continueForm);
+    pastHistoryList.appendChild(item);
+  });
 }
 
 generateBtn.addEventListener('click', generateStory);

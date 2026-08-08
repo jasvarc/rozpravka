@@ -76,11 +76,42 @@ function addStory(tenant, story) {
   const record = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
     createdAt: new Date().toISOString(),
+    favorite: false,
     ...story,
   };
   stories.unshift(record);
   fs.writeFileSync(storiesPath(tenant), JSON.stringify(stories, null, 2));
   return record;
+}
+
+function getStory(tenant, id) {
+  return getStories(tenant).find((s) => s.id === id) || null;
+}
+
+function updateStory(tenant, id, partial) {
+  const stories = getStories(tenant);
+  const idx = stories.findIndex((s) => s.id === id);
+  if (idx === -1) return null;
+  stories[idx] = { ...stories[idx], ...partial };
+  fs.writeFileSync(storiesPath(tenant), JSON.stringify(stories, null, 2));
+  return stories[idx];
+}
+
+function deleteStory(tenant, id) {
+  const stories = getStories(tenant);
+  const filtered = stories.filter((s) => s.id !== id);
+  if (filtered.length === stories.length) return false;
+  fs.writeFileSync(storiesPath(tenant), JSON.stringify(filtered, null, 2));
+  return true;
+}
+
+function getRecentAndFavoriteStories(tenant, recentCount = 5) {
+  const stories = getStories(tenant);
+  const recent = stories.slice(0, recentCount);
+  const favorites = stories.filter((s) => s.favorite);
+  const merged = new Map();
+  [...recent, ...favorites].forEach((s) => merged.set(s.id, s));
+  return Array.from(merged.values()).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
 function tenantExists(tenant) {
@@ -152,6 +183,10 @@ module.exports = {
   saveSettings,
   getStories,
   addStory,
+  getStory,
+  updateStory,
+  deleteStory,
+  getRecentAndFavoriteStories,
   tenantExists,
   listTenants,
   deleteTenant,

@@ -8,7 +8,7 @@ const SOUND_TYPES = [
   'mouse', 'rabbit', 'squirrel', 'magic', 'footsteps', 'laugh', 'splash', 'door',
 ];
 
-function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language }) {
+function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote }) {
   const isEnglish = language === 'en';
   const lines = [
     'Si láskavý rozprávač, ktorý píše krátke upokojujúce rozprávky na dobrú noc pre malé deti.',
@@ -18,6 +18,21 @@ function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLengt
     'Rozprávka musí byť primeraná veku, nesmie obsahovať nič strašidelné, násilné ani úzkostné - má dieťa upokojiť pred spaním.',
     `Dĺžka: približne ${minLength}-${maxLength} slov, jednoduchý jazyk, príjemný a pomalý záver, ktorý navodzuje spánok.`,
   ];
+
+  if (previousContent) {
+    lines.push(
+      isEnglish
+        ? `This is a CONTINUATION of a previous bedtime story. Here is its full text for context:\n"""\n${previousContent}\n"""\nWrite a NEW, self-contained story that continues with the same main characters and world (same names, personalities, setting) as the story above. Don't summarize the previous story - start right into a new adventure, and don't repeat its plot.`
+        : `Toto je POKRAČOVANIE predchádzajúcej rozprávky. Tu je jej celý text pre kontext:\n"""\n${previousContent}\n"""\nNapíš NOVÚ, samostatnú rozprávku, ktorá pokračuje s tými istými hlavnými postavami a svetom (rovnaké mená, povahy, prostredie) ako v príbehu vyššie. Predchádzajúci dej nezhŕňaj - začni rovno novým dobrodružstvom a neopakuj jeho dej.`
+    );
+    if (characterNote) {
+      lines.push(
+        isEnglish
+          ? `For this continuation, incorporate this requested change to the characters: "${characterNote}". Work it naturally into the story.`
+          : `Pre toto pokračovanie zapracuj túto požadovanú zmenu v postavách: "${characterNote}". Zakomponuj ju do príbehu prirodzene.`
+      );
+    }
+  }
 
   if (blockedTopics && blockedTopics.length > 0) {
     lines.push(
@@ -58,9 +73,15 @@ function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLengt
   return lines.join('\n');
 }
 
-async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language }) {
-  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language });
+async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote }) {
+  const system = buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLength, maxLength, girlNames, boyNames, adultNames, language, previousContent, characterNote });
   const maxTokens = Math.min(4000, Math.max(300, Math.round(maxLength * 4)));
+
+  const userContent = previousContent
+    ? characterNote
+      ? `Napíš pokračovanie rozprávky. Zmena postáv: ${characterNote}`
+      : 'Napíš pokračovanie rozprávky.'
+    : `Dieťa chce počuť rozprávku na tému: ${childPrompt}`;
 
   const message = await client.messages.create(
     {
@@ -70,7 +91,7 @@ async function generateStory({ childPrompt, allowedTopics, blockedTopics, moralL
       messages: [
         {
           role: 'user',
-          content: `Dieťa chce počuť rozprávku na tému: ${childPrompt}`,
+          content: userContent,
         },
       ],
     },

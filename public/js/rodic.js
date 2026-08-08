@@ -175,21 +175,67 @@ async function loadHistory() {
     historyList.appendChild(empty);
     return;
   }
-  stories.slice(0, 20).forEach((s) => {
+  stories.slice(0, 50).forEach((s) => {
     const item = document.createElement('div');
     item.className = 'story-history-item';
 
     const meta = document.createElement('div');
     meta.className = 'meta';
+    const favMark = s.favorite ? '⭐ ' : '';
     meta.textContent = s.moralLesson
-      ? `${formatDate(s.createdAt)} · ${t('history_moral_lesson_prefix')} ${s.moralLesson}`
-      : formatDate(s.createdAt);
+      ? `${favMark}${formatDate(s.createdAt)} · ${t('history_moral_lesson_prefix')} ${s.moralLesson}`
+      : `${favMark}${formatDate(s.createdAt)}`;
 
     const title = document.createElement('strong');
     title.textContent = s.childPrompt;
 
+    const textBox = document.createElement('div');
+    textBox.className = 'story-text';
+    textBox.style.display = 'none';
+    textBox.style.marginTop = '10px';
+    textBox.textContent = s.content;
+
+    const actions = document.createElement('div');
+    actions.className = 'actions-row';
+
+    const toggleTextBtn = document.createElement('button');
+    toggleTextBtn.className = 'secondary';
+    toggleTextBtn.textContent = t('history_show_text_btn');
+    toggleTextBtn.addEventListener('click', () => {
+      const showing = textBox.style.display !== 'none';
+      textBox.style.display = showing ? 'none' : 'block';
+      toggleTextBtn.textContent = showing ? t('history_show_text_btn') : t('history_hide_text_btn');
+    });
+
+    const favBtn = document.createElement('button');
+    favBtn.className = 'secondary';
+    favBtn.textContent = s.favorite ? t('history_favorite_off_btn') : t('history_favorite_on_btn');
+    favBtn.addEventListener('click', async () => {
+      await fetch(`api/story/${s.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorite: !s.favorite }),
+      });
+      await loadHistory();
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'danger';
+    deleteBtn.textContent = t('history_delete_btn');
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm(t('history_delete_confirm'))) return;
+      await fetch(`api/story/${s.id}`, { method: 'DELETE' });
+      await loadHistory();
+    });
+
+    actions.appendChild(toggleTextBtn);
+    actions.appendChild(favBtn);
+    actions.appendChild(deleteBtn);
+
     item.appendChild(meta);
     item.appendChild(title);
+    item.appendChild(actions);
+    item.appendChild(textBox);
     historyList.appendChild(item);
   });
 }
