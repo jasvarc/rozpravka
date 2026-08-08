@@ -15,6 +15,7 @@ let currentVoiceName = '';
 let currentVoiceRate = 1;
 let currentStoryLang = 'sk';
 let soundsEnabled = false;
+let dynamicSoundMap = new Map();
 let wordSpans = [];
 let wordCursor = 0;
 let highlightedSpan = null;
@@ -73,7 +74,8 @@ function maybeTriggerSound(wordSpan) {
   if (!soundsEnabled || !wordSpan) return;
   const sentenceIndex = Number(wordSpan.dataset.sentence);
   if (sentenceIndex - lastSoundSentence < SOUND_SENTENCE_GAP) return;
-  const soundType = matchSoundForWord(wordSpan.textContent, currentStoryLang);
+  const normalized = normalizeWord(wordSpan.textContent);
+  const soundType = dynamicSoundMap.get(normalized) || matchSoundForWord(wordSpan.textContent, currentStoryLang);
   if (!soundType) return;
   lastSoundSentence = sentenceIndex;
   playSoundEffect(soundType);
@@ -126,6 +128,12 @@ async function generateStory() {
     currentVoiceRate = data.voiceRate || 1;
     currentStoryLang = data.language === 'en' ? 'en' : 'sk';
     soundsEnabled = !!data.soundsEnabled;
+    dynamicSoundMap = new Map();
+    (data.soundCues || []).forEach((cue) => {
+      if (cue && typeof cue.word === 'string' && typeof cue.type === 'string') {
+        dynamicSoundMap.set(normalizeWord(cue.word), cue.type);
+      }
+    });
     renderStoryText(storyRawText);
     resetHighlight();
     storyBox.style.display = 'block';

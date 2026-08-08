@@ -1,6 +1,6 @@
 const express = require('express');
 const { getSettings, saveSettings, getStories, addStory } = require('../store');
-const { generateStory } = require('../claude');
+const { generateStory, extractSoundCues } = require('../claude');
 const { t } = require('../i18n');
 
 const router = express.Router();
@@ -52,6 +52,10 @@ router.post('/', async (req, res) => {
       content,
     });
 
+    const soundCues = settings.soundsEnabled
+      ? await extractSoundCues({ content, language: settings.language })
+      : [];
+
     res.json({
       content,
       id: record.id,
@@ -60,6 +64,7 @@ router.post('/', async (req, res) => {
       voiceRate: settings.voiceRate || 1,
       language: settings.language || 'sk',
       soundsEnabled: !!settings.soundsEnabled,
+      soundCues,
     });
   } catch (err) {
     console.error('Chyba pri generovaní rozprávky:', err);

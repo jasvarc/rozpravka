@@ -128,7 +128,58 @@ const SOUND_EFFECTS = {
       playFilteredNoise(ctx, { duration: 0.04, filterType: 'highpass', frequency: 3000, gain: 0.2, fadeIn: 0.002, fadeOut: 0.02, startTime });
     });
   },
+  dragon(ctx) {
+    playTone(ctx, { freq: 90, freqEnd: 60, type: 'sawtooth', duration: 1.0, gain: 0.2, startTime: 0 });
+    playFilteredNoise(ctx, { duration: 1.0, filterType: 'lowpass', frequency: 300, Q: 1, gain: 0.18, fadeIn: 0.05, fadeOut: 0.3, startTime: 0 });
+  },
+  wolf(ctx) {
+    playTone(ctx, { freq: 300, freqEnd: 550, type: 'sine', duration: 1.0, gain: 0.18, startTime: 0 });
+  },
+  bear(ctx) {
+    playFilteredNoise(ctx, { duration: 0.8, filterType: 'lowpass', frequency: 220, Q: 0.8, gain: 0.26, fadeIn: 0.1, fadeOut: 0.3 });
+    playTone(ctx, { freq: 100, freqEnd: 80, type: 'sawtooth', duration: 0.8, gain: 0.14, startTime: 0 });
+  },
+  frog(ctx) {
+    playTone(ctx, { freq: 250, freqEnd: 180, type: 'square', duration: 0.15, gain: 0.18, startTime: 0 });
+    playTone(ctx, { freq: 300, freqEnd: 200, type: 'square', duration: 0.12, gain: 0.16, startTime: 0.18 });
+  },
+  mouse(ctx) {
+    [0, 0.15].forEach((startTime) => {
+      playTone(ctx, { freq: 3200, freqEnd: 3800, type: 'sine', duration: 0.08, gain: 0.11, startTime });
+    });
+  },
+  rabbit(ctx) {
+    playFilteredNoise(ctx, { duration: 0.12, filterType: 'lowpass', frequency: 300, gain: 0.2, fadeIn: 0.01, fadeOut: 0.05 });
+  },
+  squirrel(ctx) {
+    for (let i = 0; i < 5; i++) {
+      playTone(ctx, { freq: 2000 + Math.random() * 500, type: 'square', duration: 0.05, gain: 0.09, startTime: i * 0.09 });
+    }
+  },
+  magic(ctx) {
+    [0, 1, 2, 3, 4].forEach((i) => {
+      playTone(ctx, { freq: 600 * Math.pow(1.26, i), type: 'sine', duration: 0.3, gain: 0.11, startTime: i * 0.08 });
+    });
+  },
+  footsteps(ctx) {
+    [0, 0.4, 0.8, 1.2].forEach((startTime) => {
+      playFilteredNoise(ctx, { duration: 0.1, filterType: 'lowpass', frequency: 200, gain: 0.18, fadeIn: 0.01, fadeOut: 0.05, startTime });
+    });
+  },
+  laugh(ctx) {
+    [0, 0.2, 0.4].forEach((startTime, i) => {
+      playTone(ctx, { freq: 500 + i * 80, freqEnd: 650 + i * 80, type: 'triangle', duration: 0.15, gain: 0.14, startTime });
+    });
+  },
+  splash(ctx) {
+    playFilteredNoise(ctx, { duration: 0.35, filterType: 'bandpass', frequency: 1200, Q: 0.8, gain: 0.26, fadeIn: 0.01, fadeOut: 0.2 });
+  },
+  door(ctx) {
+    playTone(ctx, { freq: 300, freqEnd: 220, type: 'sawtooth', duration: 0.6, gain: 0.14, startTime: 0 });
+  },
 };
+
+const SOUND_TYPES = Object.keys(SOUND_EFFECTS);
 
 function playSoundEffect(type) {
   const ctx = getAudioContext();
@@ -158,6 +209,18 @@ const SOUND_KEYWORDS = {
     cow: ['krava', 'kravička', 'kravicka'],
     sheep: ['ovca', 'ovečka', 'ovecka', 'ovečky', 'ovecky'],
     clock: ['hodiny', 'hodinky', 'tikanie', 'tikali', 'tikot'],
+    dragon: ['drak', 'draka', 'drakovi', 'drakom', 'dráčik', 'dracik'],
+    wolf: ['vlk', 'vlka', 'vlkovi', 'vlkom'],
+    bear: ['medveď', 'medved', 'medveďa', 'medveda', 'medvedík', 'medvedik', 'macko', 'mackovi'],
+    frog: ['žaba', 'zaba', 'žabku', 'zabku', 'žabka', 'zabka'],
+    mouse: ['myš', 'mys', 'myšku', 'mysku', 'myška', 'myska'],
+    rabbit: ['zajac', 'zajaca', 'zajko', 'zajka', 'králik', 'kralik', 'králika', 'kralika'],
+    squirrel: ['veverička', 'vevericka', 'veveričku', 'vevericku', 'veveričke', 'vevericke'],
+    magic: ['mágia', 'magia', 'čaro', 'caro', 'kúzlo', 'kuzlo', 'kúzlom', 'kuzlom', 'čarovné', 'carovne'],
+    footsteps: ['kroky', 'krokov', 'kráčal', 'kracal', 'kráčala', 'kracala', 'kráčali', 'kracali'],
+    laugh: ['smiech', 'smial', 'smiala', 'zasmial', 'zasmiala', 'smiali'],
+    splash: ['šplech', 'splech', 'čľapkal', 'clapkal', 'čľapkala', 'clapkala'],
+    door: ['dvere', 'dverami', 'dverí', 'dveri'],
   },
   en: {
     rain: ['rain', 'rains', 'raining', 'raindrop', 'raindrops', 'rainy'],
@@ -176,6 +239,18 @@ const SOUND_KEYWORDS = {
     cow: ['cow', 'cows'],
     sheep: ['sheep', 'lamb', 'lambs'],
     clock: ['clock', 'clocks', 'ticking', 'tick'],
+    dragon: ['dragon', 'dragons'],
+    wolf: ['wolf', 'wolves'],
+    bear: ['bear', 'bears'],
+    frog: ['frog', 'frogs'],
+    mouse: ['mouse', 'mice'],
+    rabbit: ['rabbit', 'rabbits', 'bunny', 'bunnies'],
+    squirrel: ['squirrel', 'squirrels'],
+    magic: ['magic', 'magical', 'sparkle', 'sparkles'],
+    footsteps: ['footsteps', 'steps'],
+    laugh: ['laugh', 'laughed', 'giggle', 'giggled'],
+    splash: ['splash', 'splashed'],
+    door: ['door', 'doors', 'creak', 'creaked'],
   },
 };
 
@@ -190,11 +265,12 @@ function buildSoundMap(language) {
 
 const soundMapCache = {};
 
+function normalizeWord(word) {
+  return word.toLowerCase().replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+}
+
 function matchSoundForWord(word, language) {
   const lang = language === 'en' ? 'en' : 'sk';
   if (!soundMapCache[lang]) soundMapCache[lang] = buildSoundMap(lang);
-  const normalized = word
-    .toLowerCase()
-    .replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
-  return soundMapCache[lang].get(normalized) || null;
+  return soundMapCache[lang].get(normalizeWord(word)) || null;
 }
