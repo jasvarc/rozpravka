@@ -16,6 +16,20 @@ const adminMsg = document.getElementById('adminMsg');
 const adminError = document.getElementById('adminError');
 const tenantList = document.getElementById('tenantList');
 
+// Ked admin odide zo stranky (spat, zatvorenie karty, novy URL), zabudnime jeho prihlasenie,
+// aby pri navrate opat muselo zadat PIN.
+window.addEventListener('pagehide', () => {
+  navigator.sendBeacon('api/parent/logout');
+});
+
+// Ak prehliadac obnovi stranku z bfcache (napr. tlacidlom Spat), overme si znovu u servera,
+// ci sme stale prihlaseni - vyssie uvedeny beacon uz medzitym mohol odhlasenie vykonat.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    checkSession();
+  }
+});
+
 function showOnly(section) {
   setupSection.style.display = 'none';
   loginSection.style.display = 'none';
