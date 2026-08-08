@@ -3,6 +3,7 @@ const childContent = document.getElementById('childContent');
 const childGreeting = document.getElementById('childGreeting');
 const promptInput = document.getElementById('promptInput');
 const generateBtn = document.getElementById('generateBtn');
+const surpriseBtn = document.getElementById('surpriseBtn');
 const errorBox = document.getElementById('errorBox');
 const storyBox = document.getElementById('storyBox');
 const storyText = document.getElementById('storyText');
@@ -161,35 +162,56 @@ async function parseJsonResponse(res) {
   }
 }
 
+async function requestStory(body) {
+  hideError();
+  storyBox.style.display = 'none';
+  window.speechSynthesis.cancel();
+
+  const res = await fetch('api/story', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await parseJsonResponse(res);
+  if (!res.ok) {
+    throw new Error(data.error || t('error_generic'));
+  }
+  applyStoryResponse(data);
+  loadPastHistory();
+}
+
 async function generateStory() {
   const prompt = promptInput.value.trim();
   if (!prompt) {
     showError(t('dieta_error_empty_prompt'));
     return;
   }
-  hideError();
   generateBtn.disabled = true;
+  surpriseBtn.disabled = true;
   generateBtn.innerHTML = `<span class="spinner"></span>${t('dieta_generating')}`;
-  storyBox.style.display = 'none';
-  window.speechSynthesis.cancel();
-
   try {
-    const res = await fetch('api/story', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, childId }),
-    });
-    const data = await parseJsonResponse(res);
-    if (!res.ok) {
-      throw new Error(data.error || t('error_generic'));
-    }
-    applyStoryResponse(data);
-    loadPastHistory();
+    await requestStory({ prompt, childId });
   } catch (err) {
     showError(err.message);
   } finally {
     generateBtn.disabled = false;
+    surpriseBtn.disabled = false;
     generateBtn.textContent = t('dieta_generate_btn');
+  }
+}
+
+async function generateSurpriseStory() {
+  generateBtn.disabled = true;
+  surpriseBtn.disabled = true;
+  surpriseBtn.innerHTML = `<span class="spinner"></span>${t('dieta_generating')}`;
+  try {
+    await requestStory({ surprise: true, childId });
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    generateBtn.disabled = false;
+    surpriseBtn.disabled = false;
+    surpriseBtn.textContent = t('dieta_surprise_btn');
   }
 }
 
@@ -375,6 +397,7 @@ async function loadPastHistory() {
 }
 
 generateBtn.addEventListener('click', generateStory);
+surpriseBtn.addEventListener('click', generateSurpriseStory);
 readBtn.addEventListener('click', readAloud);
 stopBtn.addEventListener('click', stopReading);
 newStoryBtn.addEventListener('click', () => {

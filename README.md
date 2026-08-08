@@ -13,14 +13,14 @@ DONE:
 - rodic v historii rozpravok vidi cely text kazdej rozpravky (rozbalitelne), moze ju oznacit ako oblubenu (hviezdicka) a moze ju natrvalo zmazat. Na detskej stranke pod textboxom je zoznam poslednych 5 rozpravok plus vsetkych oblubenych, kazda s tlacidlami "Vypocut znova" (prehra ulozeny text vratane read-along a zvukovych efektov) a "Pokracovat" - vygeneruje nadvazujuci pribeh s rovnakymi hlavnymi postavami, s moznostou napisat volitelnu poznamku o pridani/odobrati vedlajsej postavy, pricom respektuje aktualne rodicovske nastavenia (mravne ponaucenie, dlzka, zakazane temy...)
 - v jednej rodine moze byt viac deti - rodic v portali vytvara/edituje/maze deti (meno, vek, pohlavie). Rozpravky su prisposobene veku dietata (mladsie deti dostanu klasicku rozpravku, pre teenagera Claude napise skor pokojny pribeh nez detsku rozpravku) a rozpravac sa k dietatu prihovara rodom podla pohlavia. Na rozcestovej stranke rodiny je namiesto vseobecneho odkazu "som dieta" tlacidlo pre kazde vytvorene meno; ak rodic este nevytvoril ziadne dieta, zobrazi sa upozornenie nech tak urobi v portali. Kazde dieta ma vlastnu oddelenu historiu rozpravok, ktoru rodic v portali vidi zoskupenu podla dietata (vratane sekcie pre rozpravky zmazaneho dietata)
 - BUGFIX: rodicovsky aj admin portal sa po odchode zo stranky (tlacidlo spat, zatvorenie karty, zadanie inej URL) automaticky odhlasia, takze pri navrate treba znovu zadat PIN. Predtym prihlasenie zostavalo v session platne, takze dieta sa po tom, co rodic odisiel z rodicovskeho portalu tlacidlom spat, vedelo dostat do rodicovskych nastaveni bez PINu
+- na detskej stranke pribudlo tlacidlo "🎁 Prekvap ma" vedla "Vytvor rozpravku" - nevyzaduje napisanie vlastnej temy. Ak ma rodina nastavene povolene temy, nahodne vyberie jednu z nich; inak nahodne vyberie z vstavaneho zoznamu tem, ktory je rozdeleny na "detsky" (do 11 rokov) a "teenagersky" (12+) vyber, zodpovedajuci existujucemu vekovemu prisposobeniu rozpravok. V historii je takato rozpravka oznacena ikonkou 🎁
 
 TODO:
 1. detsky web bude pocas rozpravania generovat obrazky obsahujuce o com prave citany text je
 2. rodicovsky veb umozni "naucit sa hlas rodica"
 3. nastavenia (povolene/zakazane temy, hlas, rychlost citania...) pojdu nastavit aj individualne pre kazde dieta, nie len spolocne za celu rodinu - ak dieta nema vlastny override, pouziju sa rodinne nastavenia
 4. rodic bude vediet nastavit denny limit poctu vygenerovanych rozpravok na dieta (ochrana pred zbytocnym cerpanim API kreditu aj jemna motivacia ist spat)
-5. na detskej stranke pribudne tlacidlo "Prekvap ma", ktore namiesto vlastnej temy vygeneruje rozpravku na nahodnu temu
-6. dieta bude vediet rozpravku "nahlasit" rodicovi (napr. ak ho vystrasila) - rodic v portali uvidi nahlasene rozpravky a moze jednym kliknutim pridat danu temu do zakazanych
-7. rodic bude vediet nastavit "cas na spanie", po ktorom detska stranka namiesto generovania zobrazi upokojujucu spravu a znemozni dalsie rozpravky do rana
-8. rodicovsky portal zobrazi tyzdenny suhrn za kazde dieta (pocet vygenerovanych rozpravok, priemerna dlzka, najcastejsie temy/postavy z historie)
-9. rodic bude vediet namiesto (alebo popri) zoznamu povolenych/zakazanych tem nastavit intenzitu/naladu rozpravky posuvnikom "pokojna <-> dobrodruznejsia"
+5. dieta bude vediet rozpravku "nahlasit" rodicovi (napr. ak ho vystrasila) - rodic v portali uvidi nahlasene rozpravky a moze jednym kliknutim pridat danu temu do zakazanych
+6. rodic bude vediet nastavit "cas na spanie", po ktorom detska stranka namiesto generovania zobrazi upokojujucu spravu a znemozni dalsie rozpravky do rana
+7. rodicovsky portal zobrazi tyzdenny suhrn za kazde dieta (pocet vygenerovanych rozpravok, priemerna dlzka, najcastejsie temy/postavy z historie)
+8. rodic bude vediet namiesto (alebo popri) zoznamu povolenych/zakazanych tem nastavit intenzitu/naladu rozpravky posuvnikom "pokojna <-> dobrodruznejsia"

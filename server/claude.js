@@ -8,6 +8,94 @@ const SOUND_TYPES = [
   'mouse', 'rabbit', 'squirrel', 'magic', 'footsteps', 'laugh', 'splash', 'door',
 ];
 
+const SURPRISE_TOPICS_SK_KIDS = [
+  'o drakovi, ktorý sa učil lietať',
+  'o mačiatku, ktoré sa stratilo v záhrade',
+  'o čarovnom lese plnom svetlušiek',
+  'o malom škriatkovi, ktorý stráži dúhu',
+  'o veveričke, ktorá zbierala hviezdy namiesto orieškov',
+  'o výprave na dno rybníka za stratenou perlou',
+  'o robotíkovi, ktorý sa učí smiať',
+  'o zajačikovi, ktorý si nevedel nájsť cestu domov',
+  'o obláčiku, ktorý cestoval po celom svete',
+  'o medvedíkovi, ktorý si zabudol, kde má brloh',
+  'o princeznej, ktorá radšej stavala hrady z piesku ako zo skla',
+  'o vláčiku, ktorý viezol deťom sny do snívania',
+  'o žabke, ktorá chcela vidieť hviezdy zblízka',
+  'o dvoch kamarátoch, ktorí si postavili loďku z lístia',
+  'o sove, ktorá rozdávala dobré sny všetkým zvieratkám v lese',
+];
+
+const SURPRISE_TOPICS_SK_TEEN = [
+  'o dlhej vlakovej ceste cez hory za úsvitu',
+  'o tichej nočnej zmene v majáku pri mori',
+  'o výprave na horský vrchol tesne pred rozbrieskom',
+  'o malej kaviarni, kam si ľudia chodia rozprávať svoje príbehy',
+  'o astronautovi, ktorý si v tichu vesmíru spomína na domov',
+  'o starom rybárovi a jeho poslednom pokojnom výlove',
+  'o meste, ktoré raz za rok úplne stíchne na jednu noc',
+  'o dvoch priateľoch, ktorí si na streche mesta ukazujú súhvezdia',
+  'o záhradníkovi, ktorý sa každý večer rozpráva so svojimi rastlinami',
+  'o dedinskej knižnici, ktorá sa v noci mení na miesto plné príbehov',
+  'o dlhej prechádzke lesom, počas ktorej si človek spomenie na dôležité veci',
+  'o starom hodinárovi, ktorý opravuje spomienky namiesto hodiniek',
+  'o tichej lodi plaviacej sa popri pobreží za súmraku',
+  'o kempovaní pod hviezdami, ďaleko od telefónov a zhonu',
+  'o ceste vlakom naprieč krajinou, počas ktorej si cestujúci spomínajú na svoje sny',
+];
+
+const SURPRISE_TOPICS_EN_KIDS = [
+  'about a dragon who was learning to fly',
+  'about a kitten who got lost in the garden',
+  'about a magical forest full of fireflies',
+  'about a little gnome who guards a rainbow',
+  'about a squirrel who collected stars instead of acorns',
+  'about a journey to the bottom of a pond to find a lost pearl',
+  'about a little robot learning how to laugh',
+  'about a bunny who could not find its way home',
+  'about a little cloud who traveled around the whole world',
+  'about a bear cub who forgot where its den was',
+  'about a princess who preferred building sandcastles to glass ones',
+  'about a little train that carries dreams to sleeping children',
+  'about a frog who wanted to see the stars up close',
+  'about two friends who built a little boat out of leaves',
+  'about an owl who handed out good dreams to all the forest animals',
+];
+
+const SURPRISE_TOPICS_EN_TEEN = [
+  'about a long train ride through the mountains at dawn',
+  'about a quiet night shift at a lighthouse by the sea',
+  'about a hike to a mountain summit just before sunrise',
+  'about a small café where people go to tell their stories',
+  'about an astronaut remembering home in the quiet of space',
+  'about an old fisherman and his last peaceful catch of the day',
+  'about a town that falls completely silent for one night each year',
+  'about two friends pointing out constellations from a city rooftop',
+  'about a gardener who talks to their plants every evening',
+  'about a small village library that turns into a place full of stories at night',
+  'about a long walk through the woods where someone remembers what matters',
+  'about an old clockmaker who repairs memories instead of clocks',
+  'about a quiet boat sailing along the coast at dusk',
+  'about camping under the stars, far from phones and rush',
+  'about a cross-country train ride where passengers share their dreams',
+];
+
+function pickSurpriseTopic({ allowedTopics, age, language }) {
+  if (allowedTopics && allowedTopics.length > 0) {
+    return allowedTopics[Math.floor(Math.random() * allowedTopics.length)];
+  }
+  const isEnglish = language === 'en';
+  const isTeen = Number(age) >= 12;
+  const pool = isEnglish
+    ? isTeen
+      ? SURPRISE_TOPICS_EN_TEEN
+      : SURPRISE_TOPICS_EN_KIDS
+    : isTeen
+      ? SURPRISE_TOPICS_SK_TEEN
+      : SURPRISE_TOPICS_SK_KIDS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 function ageBandInstruction(age, isEnglish) {
   const n = Number(age);
   if (!Number.isFinite(n) || n <= 6) {
@@ -207,4 +295,4 @@ async function extractSoundCues({ content, language }) {
   }
 }
 
-module.exports = { generateStory, extractSoundCues };
+module.exports = { generateStory, extractSoundCues, pickSurpriseTopic };

@@ -1,6 +1,6 @@
 const express = require('express');
 const { getSettings, saveSettings, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild } = require('../store');
-const { generateStory, extractSoundCues } = require('../claude');
+const { generateStory, extractSoundCues, pickSurpriseTopic } = require('../claude');
 const { t } = require('../i18n');
 
 const router = express.Router({ mergeParams: true });
@@ -80,18 +80,27 @@ router.post('/', async (req, res) => {
     return res.status(500).json({ error: t('unexpectedError', 'sk') });
   }
 
-  const { prompt, childId } = req.body;
-  if (typeof prompt !== 'string' || !prompt.trim()) {
-    return res.status(400).json({ error: t('promptRequired', settings.language) });
-  }
+  const { prompt, childId, surprise } = req.body;
   const child = typeof childId === 'string' ? getChild(tenant, childId) : null;
   if (!child) {
     return res.status(400).json({ error: t('childRequired', settings.language) });
   }
-  const childPrompt = prompt.trim().slice(0, 300);
+
+  let childPrompt;
+  let historyTitle;
+  if (surprise) {
+    childPrompt = pickSurpriseTopic({ allowedTopics: settings.allowedTopics, age: child.age, language: settings.language });
+    historyTitle = `🎁 ${childPrompt}`.slice(0, 300);
+  } else {
+    if (typeof prompt !== 'string' || !prompt.trim()) {
+      return res.status(400).json({ error: t('promptRequired', settings.language) });
+    }
+    childPrompt = prompt.trim().slice(0, 300);
+    historyTitle = childPrompt;
+  }
 
   try {
-    const result = await runGeneration(tenant, settings, child, { childPrompt, historyTitle: childPrompt });
+    const result = await runGeneration(tenant, settings, child, { childPrompt, historyTitle });
     res.json(result);
   } catch (err) {
     console.error('Chyba pri generovaní rozprávky:', err);
