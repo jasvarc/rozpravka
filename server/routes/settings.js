@@ -2,11 +2,12 @@ const express = require('express');
 const { getSettings, saveSettings } = require('../store');
 const { t } = require('../i18n');
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 function requireParentAuth(req, res, next) {
-  if (!req.session.parentAuthenticated) {
-    return res.status(401).json({ error: t('authRequired', getSettings().language) });
+  const { tenant } = req.params;
+  if (!(req.session.auth && req.session.auth[tenant])) {
+    return res.status(401).json({ error: t('authRequired', getSettings(tenant).language) });
   }
   next();
 }
@@ -14,8 +15,8 @@ function requireParentAuth(req, res, next) {
 function sanitizeTopicList(list) {
   if (!Array.isArray(list)) return [];
   return list
-    .map((t) => String(t).trim())
-    .filter((t) => t.length > 0)
+    .map((item) => String(item).trim())
+    .filter((item) => item.length > 0)
     .slice(0, 50);
 }
 
@@ -46,16 +47,17 @@ function sanitizeLanguage(value, fallback) {
 }
 
 router.get('/language', (req, res) => {
-  res.json({ language: getSettings().language || 'sk' });
+  res.json({ language: getSettings(req.params.tenant).language || 'sk' });
 });
 
 router.get('/', requireParentAuth, (req, res) => {
-  const settings = getSettings();
+  const settings = getSettings(req.params.tenant);
   const { pinHash, ...safe } = settings;
   res.json(safe);
 });
 
 router.put('/', requireParentAuth, (req, res) => {
+  const { tenant } = req.params;
   const {
     allowedTopics,
     blockedTopics,
@@ -70,7 +72,7 @@ router.put('/', requireParentAuth, (req, res) => {
     language,
     soundsEnabled,
   } = req.body;
-  const current = getSettings();
+  const current = getSettings(tenant);
 
   const sanitizedMin = sanitizeLength(minLength, current.minLength);
   const sanitizedMax = sanitizeLength(maxLength, current.maxLength);
@@ -78,7 +80,7 @@ router.put('/', requireParentAuth, (req, res) => {
     return res.status(400).json({ error: t('lengthOrderError', current.language) });
   }
 
-  const updated = saveSettings({
+  const updated = saveSettings(tenant, {
     allowedTopics: sanitizeTopicList(allowedTopics),
     blockedTopics: sanitizeTopicList(blockedTopics),
     moralLessonNext: sanitizeMoralLesson(moralLessonNext),

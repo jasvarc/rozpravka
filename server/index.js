@@ -7,12 +7,14 @@ const session = require('express-session');
 const storyRoutes = require('./routes/story');
 const parentRoutes = require('./routes/parent');
 const settingsRoutes = require('./routes/settings');
-const { getSettings } = require('./store');
+const adminRoutes = require('./routes/admin');
+const { isValidTenantName } = require('./store');
 const { t } = require('./i18n');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '127.0.0.1';
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('VAROVANIE: ANTHROPIC_API_KEY nie je nastavený v .env - generovanie rozprávok zlyhá.');
@@ -36,27 +38,53 @@ app.use(
   })
 );
 
-app.use('/api/story', storyRoutes);
-app.use('/api/parent', parentRoutes);
-app.use('/api/settings', settingsRoutes);
-
-app.use(express.static(path.join(__dirname, '..', 'public')));
-
-function currentLanguage() {
-  try {
-    return getSettings().language;
-  } catch (err) {
-    return 'sk';
+// Kazda routa s :tenant prejde touto validaciou - nespravny nazov = 400 hned na zaciatku.
+app.param('tenant', (req, res, next, value) => {
+  const normalized = String(value).toLowerCase();
+  if (!isValidTenantName(normalized)) {
+    return res.status(400).json({ error: 'Neplatný názov v URL adrese.' });
   }
+  req.params.tenant = normalized;
+  next();
+});
+
+function requireAdminAuth(req, res, next) {
+  if (!(req.session.auth && req.session.auth.admin)) {
+    return res.status(401).json({ error: t('authRequired', 'sk') });
+  }
+  next();
 }
 
+app.use('/:tenant/api/story', storyRoutes);
+app.use('/:tenant/api/parent', parentRoutes);
+app.use('/:tenant/api/settings', settingsRoutes);
+app.use('/admin/api/admin', requireAdminAuth, adminRoutes);
+
+// Admin nie je bezna rodina - presmeruj jeho stranky na samostatny admin portal.
+app.use('/:tenant', (req, res, next) => {
+  if (req.params.tenant === 'admin' && ['/', '/index.html', '/dieta.html', '/rodic.html'].includes(req.path)) {
+    return res.redirect('/admin/admin.html');
+  }
+  next();
+});
+
+app.use('/:tenant', express.static(PUBLIC_DIR));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'welcome.html'));
+});
+
 app.use('/api', (req, res) => {
-  res.status(404).json({ error: t('unknownApiPath', currentLanguage()) });
+  res.status(404).json({ error: t('unknownApiPath', 'sk') });
+});
+
+app.use((req, res) => {
+  res.status(404).send('Not found');
 });
 
 app.use((err, req, res, next) => {
   console.error('Neočakávaná chyba:', err);
-  res.status(500).json({ error: t('unexpectedError', currentLanguage()) });
+  res.status(500).json({ error: t('unexpectedError', 'sk') });
 });
 
 app.listen(PORT, HOST, () => {

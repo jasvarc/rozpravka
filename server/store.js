@@ -2,8 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
-const SETTINGS_PATH = path.join(DATA_DIR, 'settings.json');
-const STORIES_PATH = path.join(DATA_DIR, 'stories.json');
+const TENANTS_DIR = path.join(DATA_DIR, 'tenants');
+const LEGACY_SETTINGS_PATH = path.join(DATA_DIR, 'settings.json');
+const LEGACY_STORIES_PATH = path.join(DATA_DIR, 'stories.json');
+
+const TENANT_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{1,29}$/;
 
 const DEFAULT_SETTINGS = {
   pinHash: null,
@@ -19,52 +22,139 @@ const DEFAULT_SETTINGS = {
   adultNames: [],
   language: 'sk',
   soundsEnabled: false,
+  createdAt: null,
 };
 
-function ensureDataFiles() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(SETTINGS_PATH)) {
-    fs.writeFileSync(SETTINGS_PATH, JSON.stringify(DEFAULT_SETTINGS, null, 2));
+function isValidTenantName(name) {
+  return typeof name === 'string' && TENANT_NAME_PATTERN.test(name);
+}
+
+function tenantDir(tenant) {
+  return path.join(TENANTS_DIR, tenant);
+}
+
+function settingsPath(tenant) {
+  return path.join(tenantDir(tenant), 'settings.json');
+}
+
+function storiesPath(tenant) {
+  return path.join(tenantDir(tenant), 'stories.json');
+}
+
+function ensureTenantFiles(tenant) {
+  const dir = tenantDir(tenant);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(settingsPath(tenant))) {
+    fs.writeFileSync(settingsPath(tenant), JSON.stringify(DEFAULT_SETTINGS, null, 2));
   }
-  if (!fs.existsSync(STORIES_PATH)) {
-    fs.writeFileSync(STORIES_PATH, JSON.stringify([], null, 2));
+  if (!fs.existsSync(storiesPath(tenant))) {
+    fs.writeFileSync(storiesPath(tenant), JSON.stringify([], null, 2));
   }
 }
 
-function getSettings() {
-  ensureDataFiles();
-  const raw = fs.readFileSync(SETTINGS_PATH, 'utf-8');
+function getSettings(tenant) {
+  ensureTenantFiles(tenant);
+  const raw = fs.readFileSync(settingsPath(tenant), 'utf-8');
   return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
 }
 
-function saveSettings(partial) {
-  const current = getSettings();
+function saveSettings(tenant, partial) {
+  const current = getSettings(tenant);
   const updated = { ...current, ...partial };
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(updated, null, 2));
+  fs.writeFileSync(settingsPath(tenant), JSON.stringify(updated, null, 2));
   return updated;
 }
 
-function getStories() {
-  ensureDataFiles();
-  const raw = fs.readFileSync(STORIES_PATH, 'utf-8');
+function getStories(tenant) {
+  ensureTenantFiles(tenant);
+  const raw = fs.readFileSync(storiesPath(tenant), 'utf-8');
   return JSON.parse(raw);
 }
 
-function addStory(story) {
-  const stories = getStories();
+function addStory(tenant, story) {
+  const stories = getStories(tenant);
   const record = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
     createdAt: new Date().toISOString(),
     ...story,
   };
   stories.unshift(record);
-  fs.writeFileSync(STORIES_PATH, JSON.stringify(stories, null, 2));
+  fs.writeFileSync(storiesPath(tenant), JSON.stringify(stories, null, 2));
   return record;
 }
 
+function tenantExists(tenant) {
+  return fs.existsSync(settingsPath(tenant));
+}
+
+function listTenants() {
+  if (!fs.existsSync(TENANTS_DIR)) return [];
+  return fs
+    .readdirSync(TENANTS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((name) => name !== 'admin' && isValidTenantName(name))
+    .map((name) => {
+      const settings = getSettings(name);
+      const stories = getStories(name);
+      return {
+        name,
+        hasPin: !!settings.pinHash,
+        language: settings.language || 'sk',
+        storyCount: stories.length,
+        createdAt: settings.createdAt || null,
+        lastStoryAt: stories.length > 0 ? stories[0].createdAt : null,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function deleteTenant(tenant) {
+  if (tenant === 'admin') {
+    throw new Error('Nemožno zmazať admin účet.');
+  }
+  const dir = tenantDir(tenant);
+  if (fs.existsSync(dir)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function resetTenantPin(tenant) {
+  return saveSettings(tenant, { pinHash: null });
+}
+
+function migrateLegacyData(tenant) {
+  if (!isValidTenantName(tenant)) {
+    throw new Error('Neplatný názov pre migráciu.');
+  }
+  if (!fs.existsSync(LEGACY_SETTINGS_PATH)) {
+    return { migrated: false, reason: 'Žiadne staré dáta (data/settings.json) sa nenašli.' };
+  }
+  if (tenantExists(tenant)) {
+    return { migrated: false, reason: `Tenant "${tenant}" už existuje, migrácia by ho prepísala - nič som nezmenil.` };
+  }
+  const dir = tenantDir(tenant);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.copyFileSync(LEGACY_SETTINGS_PATH, settingsPath(tenant));
+  fs.renameSync(LEGACY_SETTINGS_PATH, `${LEGACY_SETTINGS_PATH}.bak`);
+  if (fs.existsSync(LEGACY_STORIES_PATH)) {
+    fs.copyFileSync(LEGACY_STORIES_PATH, storiesPath(tenant));
+    fs.renameSync(LEGACY_STORIES_PATH, `${LEGACY_STORIES_PATH}.bak`);
+  } else {
+    fs.writeFileSync(storiesPath(tenant), JSON.stringify([], null, 2));
+  }
+  return { migrated: true };
+}
+
 module.exports = {
+  isValidTenantName,
   getSettings,
   saveSettings,
   getStories,
   addStory,
+  tenantExists,
+  listTenants,
+  deleteTenant,
+  resetTenantPin,
+  migrateLegacyData,
 };

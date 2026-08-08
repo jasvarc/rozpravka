@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rozprávky na dobrú noc</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>🌙 Rozprávky na dobrú noc</h1>
+    <p class="subtitle">Táto appka teraz podporuje viac rodín. Zadaj svoje meno (alebo meno rodiny) - vytvorí sa preň vlastný priestor s vlastným PIN-om a nastaveniami.</p>
+
+    <div class="field">
+      <label for="nameInput">Tvoje meno</label>
+      <input type="text" id="nameInput" placeholder="napr. novakovci" maxlength="30" />
+    </div>
+
+    <button id="goBtn">Pokračovať</button>
+    <div id="nameError" class="error" style="display: none"></div>
+  </div>
+
+  <script>
+    const nameInput = document.getElementById('nameInput');
+    const goBtn = document.getElementById('goBtn');
+    const nameError = document.getElementById('nameError');
+    const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{1,29}$/;
+
+    function go() {
+      const normalized = nameInput.value.trim().toLowerCase();
+      if (!NAME_PATTERN.test(normalized)) {
+        nameError.textContent = 'Meno smie obsahovať len malé písmená, číslice, pomlčku a podčiarnik (2-30 znakov).';
+        nameError.style.display = 'block';
+        return;
+      }
+      window.location.href = `${normalized}/`;
+    }
+
+    goBtn.addEventListener('click', go);
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        go();
+      }
+    });
+    nameInput.focus();
+  </script>
+</body>
+</html>

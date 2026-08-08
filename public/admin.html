@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Administrácia</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="card" style="max-width: 700px">
+    <section id="setupSection" style="display: none">
+      <h1>🔒 Vytvor administrátorský PIN</h1>
+      <p class="subtitle">Tento PIN chráni správu všetkých rodín v appke.</p>
+      <div class="field">
+        <label for="setupPinInput">Nový PIN (4-6 číslic)</label>
+        <input type="password" id="setupPinInput" class="pin-input" inputmode="numeric" maxlength="6" />
+      </div>
+      <button id="setupBtn">Nastaviť PIN</button>
+      <div id="setupError" class="error" style="display: none"></div>
+    </section>
+
+    <section id="loginSection" style="display: none">
+      <h1>🔒 Administrácia</h1>
+      <div class="field">
+        <input type="password" id="loginPinInput" class="pin-input" inputmode="numeric" maxlength="6" />
+      </div>
+      <button id="loginBtn">Prihlásiť sa</button>
+      <div id="loginError" class="error" style="display: none"></div>
+    </section>
+
+    <section id="adminSection" style="display: none">
+      <h1>🛠️ Administrácia</h1>
+      <p class="subtitle">Zoznam všetkých rodín (mien) v appke.</p>
+
+      <div class="actions-row">
+        <button id="refreshBtn" class="secondary">🔄 Obnoviť</button>
+        <button id="logoutBtn" class="secondary">Odhlásiť sa</button>
+      </div>
+
+      <div id="adminMsg" class="success" style="display: none"></div>
+      <div id="adminError" class="error" style="display: none"></div>
+
+      <div id="tenantList" class="story-history"></div>
+    </section>
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

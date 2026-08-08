@@ -99,6 +99,53 @@ Otvor v prehliadači `https://tvoj-server/rozpravky/` (alebo `http://`, podľa
 toho, ktorý vhost si upravil). Priamo `http://tvoj-server:3000` už nebude
 z vonku dostupné vôbec — appka počúva iba na loopbacku.
 
+## Viac používateľov (viac rodín v jednej appke)
+
+Appka teraz podporuje viac nezávislých rodín/mien v jednej inštalácii. Meno je
+súčasťou URL: `https://tvoj-server/rozpravky/<meno>/`. Každé meno má vlastný
+PIN, vlastné nastavenia (témy, jazyk, hlas, mená postáv...) aj vlastnú
+históriu rozprávok - úplne oddelené od ostatných mien.
+
+- Otvorenie `https://tvoj-server/rozpravky/` (bez mena) zobrazí formulár na
+  zadanie mena a presmeruje na `.../<meno>/`.
+- Prvá návšteva `.../<meno>/rodic.html` s doteraz nepoužitým menom sa správa
+  ako nová inštalácia - vyžiada si vytvorenie PIN-u.
+- Meno `admin` je vyhradené pre administráciu (pozri nižšie), nedá sa použiť
+  ako bežné rodinné meno.
+
+### Migrácia dát z pôvodnej (jedno-používateľskej) verzie
+
+Ak si appku používal už predtým (dáta v `data/settings.json` a
+`data/stories.json`), po prvom nasadení tejto verzie ich treba **raz**
+migrovať pod zvolené meno, inak zostanú nedostupné (appka ich už nečíta zo
+starého miesta):
+
+```bash
+cd /var/www/html/rozpravky
+sudo node deploy/migrate-legacy-data.js tvoje-meno
+sudo chown -R www-data:www-data data
+sudo systemctl restart bedtime-story-app
+```
+
+Skript presunie staré súbory do `data/tenants/tvoje-meno/` (pôvodné súbory sa
+premenujú na `.bak`, nič sa nezmaže). Po migrácii nájdeš svoje pôvodné
+nastavenia a históriu na `https://tvoj-server/rozpravky/tvoje-meno/`.
+
+### Administrácia
+
+`https://tvoj-server/rozpravky/admin/` - samostatný portál chránený vlastným
+PIN-om (pri prvej návšteve si ho vytvoríš rovnako ako pri bežnom mene).
+Umožňuje:
+
+- zoznam všetkých mien s prehľadom (jazyk, počet rozprávok, dátum vytvorenia,
+  posledná aktivita, či má nastavený PIN),
+- **resetovať PIN** danému menu (napr. keď si rodič PIN zabudne) - ostatné
+  nastavenia a história zostanú zachované, pri ďalšej návšteve appka vyžiada
+  vytvorenie nového PIN-u,
+- **natrvalo zmazať** meno vrátane všetkých jeho nastavení a histórie.
+
+Admin portál nevidí obsah rozprávok jednotlivých mien, iba súhrnné štatistiky.
+
 ## Riešenie problémov
 
 Appka teraz loguje každý request (metóda, cesta, HTTP status, trvanie), takže

@@ -3,22 +3,24 @@ const bcrypt = require('bcryptjs');
 const { getSettings, saveSettings } = require('../store');
 const { t } = require('../i18n');
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 function isValidPin(pin) {
   return typeof pin === 'string' && /^\d{4,6}$/.test(pin);
 }
 
 router.get('/session', (req, res) => {
-  const settings = getSettings();
+  const { tenant } = req.params;
+  const settings = getSettings(tenant);
   res.json({
     hasPin: !!settings.pinHash,
-    authenticated: !!req.session.parentAuthenticated,
+    authenticated: !!(req.session.auth && req.session.auth[tenant]),
   });
 });
 
 router.post('/setup', (req, res) => {
-  const settings = getSettings();
+  const { tenant } = req.params;
+  const settings = getSettings(tenant);
   if (settings.pinHash) {
     return res.status(409).json({ error: t('pinAlreadySet', settings.language) });
   }
@@ -27,13 +29,15 @@ router.post('/setup', (req, res) => {
     return res.status(400).json({ error: t('pinInvalid', settings.language) });
   }
   const pinHash = bcrypt.hashSync(pin, 10);
-  saveSettings({ pinHash });
-  req.session.parentAuthenticated = true;
+  saveSettings(tenant, { pinHash, createdAt: settings.createdAt || new Date().toISOString() });
+  req.session.auth = req.session.auth || {};
+  req.session.auth[tenant] = true;
   res.json({ ok: true });
 });
 
 router.post('/login', (req, res) => {
-  const settings = getSettings();
+  const { tenant } = req.params;
+  const settings = getSettings(tenant);
   if (!settings.pinHash) {
     return res.status(409).json({ error: t('pinNotSet', settings.language) });
   }
@@ -41,12 +45,14 @@ router.post('/login', (req, res) => {
   if (!isValidPin(pin) || !bcrypt.compareSync(pin, settings.pinHash)) {
     return res.status(401).json({ error: t('pinWrong', settings.language) });
   }
-  req.session.parentAuthenticated = true;
+  req.session.auth = req.session.auth || {};
+  req.session.auth[tenant] = true;
   res.json({ ok: true });
 });
 
 router.post('/logout', (req, res) => {
-  req.session.parentAuthenticated = false;
+  const { tenant } = req.params;
+  if (req.session.auth) req.session.auth[tenant] = false;
   res.json({ ok: true });
 });
 
