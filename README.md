@@ -15,10 +15,12 @@ DONE:
 - BUGFIX: rodicovsky aj admin portal sa po odchode zo stranky (tlacidlo spat, zatvorenie karty, zadanie inej URL) automaticky odhlasia, takze pri navrate treba znovu zadat PIN. Predtym prihlasenie zostavalo v session platne, takze dieta sa po tom, co rodic odisiel z rodicovskeho portalu tlacidlom spat, vedelo dostat do rodicovskych nastaveni bez PINu
 
 TODO:
-- detsky web bude pocas rozpravania generovat obrazky obsahujuce o com prave citany text je
-- rodicovsky veb umozni "naucit sa hlas rodica"
-- nastavenia (povolene/zakazane temy, hlas, rychlost citania...) pojdu nastavit aj individualne pre kazde dieta, nie len spolocne za celu rodinu - ak dieta nema vlastny override, pouziju sa rodinne nastavenia
-- rodic bude vediet nastavit denny limit poctu vygenerovanych rozpravok na dieta (ochrana pred zbytocnym cerpanim API kreditu aj jemna motivacia ist spat)
-- na detskej stranke pribudne tlacidlo "Prekvap ma", ktore namiesto vlastnej temy vygeneruje rozpravku na nahodnu temu
-- dieta bude vediet rozpravku "nahlasit" rodicovi (napr. ak ho vystrasila) - rodic v portali uvidi nahlasene rozpravky a moze jednym kliknutim pridat danu temu do zakazanych
-- rodic bude vediet nastavit "cas na spanie", po ktorom detska stranka namiesto generovania zobrazi upokojujucu spravu a znemozni dalsie rozpravky do rana
+1. detsky web bude pocas rozpravania generovat obrazky obsahujuce o com prave citany text je
+2. rodicovsky veb umozni "naucit sa hlas rodica"
+3. nastavenia (povolene/zakazane temy, hlas, rychlost citania...) pojdu nastavit aj individualne pre kazde dieta, nie len spolocne za celu rodinu - ak dieta nema vlastny override, pouziju sa rodinne nastavenia
+4. rodic bude vediet nastavit denny limit poctu vygenerovanych rozpravok na dieta (ochrana pred zbytocnym cerpanim API kreditu aj jemna motivacia ist spat)
+5. na detskej stranke pribudne tlacidlo "Prekvap ma", ktore namiesto vlastnej temy vygeneruje rozpravku na nahodnu temu
+6. dieta bude vediet rozpravku "nahlasit" rodicovi (napr. ak ho vystrasila) - rodic v portali uvidi nahlasene rozpravky a moze jednym kliknutim pridat danu temu do zakazanych
+7. rodic bude vediet nastavit "cas na spanie", po ktorom detska stranka namiesto generovania zobrazi upokojujucu spravu a znemozni dalsie rozpravky do rana
+8. rodicovsky portal zobrazi tyzdenny suhrn za kazde dieta (pocet vygenerovanych rozpravok, priemerna dlzka, najcastejsie temy/postavy z historie)
+9. rodic bude vediet namiesto (alebo popri) zoznamu povolenych/zakazanych tem nastavit intenzitu/naladu rozpravky posuvnikom "pokojna <-> dobrodruznejsia"
