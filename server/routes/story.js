@@ -1,6 +1,6 @@
 const express = require('express');
 const { getSettings, saveSettings, getAppLimits, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild, resolveStoryLanguage } = require('../store');
-const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics } = require('../claude');
+const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics, translateStoryToSlovak } = require('../claude');
 const { t, dailyLimitMessage } = require('../i18n');
 const { logEvent } = require('../log-store');
 
@@ -229,6 +229,38 @@ router.post('/:id/report', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error('Chyba pri spracovaní nahlásenia rozprávky:', err);
+    res.status(500).json({ error: t('unexpectedError', 'sk') });
+  }
+});
+
+router.post('/:id/translate', async (req, res) => {
+  const { tenant, id } = req.params;
+  try {
+    const settings = getSettings(tenant);
+    if (settings.enabled === false) {
+      return res.status(403).json({ error: t('familyNotEnabled', settings.language) });
+    }
+    const story = getStory(tenant, id);
+    if (!story) {
+      return res.status(404).json({ error: t('storyNotFound', settings.language) });
+    }
+    if (story.language !== 'en') {
+      return res.status(400).json({ error: t('translationOnlyForEnglish', settings.language) });
+    }
+    if (story.translation) {
+      return res.json({ translation: story.translation });
+    }
+    try {
+      const translation = await translateStoryToSlovak(story.content);
+      updateStory(tenant, id, { translation });
+      logEvent(`Vygenerovaný preklad rozprávky pre "${story.childName}" (rodina: ${tenant}).`);
+      res.json({ translation });
+    } catch (err) {
+      console.error('Chyba pri preklade rozprávky:', err);
+      res.status(502).json({ error: t('translationFailed', settings.language) });
+    }
+  } catch (err) {
+    console.error('Chyba pri spracovaní požiadavky na preklad rozprávky:', err);
     res.status(500).json({ error: t('unexpectedError', 'sk') });
   }
 });

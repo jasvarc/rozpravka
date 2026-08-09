@@ -40,6 +40,9 @@ const TRANSLATIONS = {
     dieta_report_btn: '😟 Nahlásiť rodičovi',
     dieta_report_done: '✅ Nahlásené',
     dieta_daily_limit_hint: 'Za deň môžeš dostať najviac {n} rozprávky.',
+    dieta_translate_btn: '🌐 Simultánny preklad',
+    dieta_translate_hide_btn: '🙈 Skryť preklad',
+    dieta_translating: 'Prekladá sa...',
 
     rodic_title: 'Rodičovské nastavenia',
     history_reported_badge: '😟 Nahlásené dieťaťom',
@@ -161,6 +164,9 @@ const TRANSLATIONS = {
     dieta_report_btn: '😟 Tell my parent',
     dieta_report_done: '✅ Reported',
     dieta_daily_limit_hint: 'You can get at most {n} stories per day.',
+    dieta_translate_btn: '🌐 Simultaneous translation',
+    dieta_translate_hide_btn: '🙈 Hide translation',
+    dieta_translating: 'Translating...',
 
     rodic_title: 'Parent settings',
     history_reported_badge: '😟 Reported by child',

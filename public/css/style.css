@@ -157,6 +157,42 @@ label {
 .story-word {
   transition: background-color 0.15s ease, color 0.15s ease;
   border-radius: 4px;
+  cursor: pointer;
+}
+
+.story-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.story-column {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.story-column .story-text {
+  margin-top: 0;
+}
+
+.story-column-label {
+  margin-top: 0;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.translation-chunk {
+  transition: background-color 0.15s ease, color 0.15s ease;
+  border-radius: 4px;
+}
+
+.story-paragraph {
+  margin-bottom: 1em;
+}
+
+.story-paragraph:last-child {
+  margin-bottom: 0;
 }
 
 .story-word-active {

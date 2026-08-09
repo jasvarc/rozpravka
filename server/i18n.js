@@ -15,6 +15,8 @@ const MESSAGES = {
     unknownApiPath: 'Neznáma API cesta.',
     unexpectedError: 'Nastala neočakávaná chyba na serveri.',
     familyNotEnabled: 'Administrátor ešte nepovolil alebo dočasne zablokoval toto meno. Rozprávky nie sú momentálne dostupné.',
+    translationOnlyForEnglish: 'Preklad je dostupný iba pre rozprávky v angličtine.',
+    translationFailed: 'Preklad sa teraz nepodarilo vytvoriť. Skús to prosím znova.',
   },
   en: {
     authRequired: 'Parent login required.',
@@ -32,6 +34,8 @@ const MESSAGES = {
     unknownApiPath: 'Unknown API path.',
     unexpectedError: 'An unexpected server error occurred.',
     familyNotEnabled: "The administrator hasn't enabled this name yet, or has temporarily blocked it. Stories aren't available right now.",
+    translationOnlyForEnglish: 'Translation is only available for English stories.',
+    translationFailed: 'Could not create the translation right now. Please try again.',
   },
 };
 

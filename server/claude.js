@@ -508,6 +508,132 @@ async function suggestBlockedTopics({ content, childPrompt, language }) {
   }
 }
 
+// Rozdeli text na "vety" tak, aby ich spojenim vzniklo presne povodne znenie (vratane medzier
+// a odstavcov) - potrebne pre presne mapovanie znakovych indexov medzi originalom a prekladom.
+function splitSentences(text) {
+  const raw = [];
+  const re = /[^.!?]+[.!?]+\s*/g;
+  let match;
+  let lastIndex = 0;
+  while ((match = re.exec(text)) !== null) {
+    raw.push(match[0]);
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < text.length) raw.push(text.slice(lastIndex));
+  return raw.filter((part) => part.length > 0);
+}
+
+// Oddeli koncove biele znaky (vratane odstavcovych zlomov) od "jadra" vety - jadro posielame
+// Claude na preklad, biele znaky si dopajame sami, aby model nemusel spolahlivo reprodukovat
+// presne medzery/odriadkovania.
+function splitCoreAndTrailingWs(rawSentence) {
+  const trailingMatch = rawSentence.match(/\s+$/);
+  const trailingWs = trailingMatch ? trailingMatch[0] : '';
+  const core = trailingWs ? rawSentence.slice(0, rawSentence.length - trailingWs.length) : rawSentence;
+  return { core, trailingWs };
+}
+
+// Prelozi anglicku rozpravku do slovenciny veta po vete, s volitelnym jemnejsim zarovnanim na
+// urovni slov/fraz (chunks) tam, kde je priamy doslovny sulad mozny bez toho aby preklad znel
+// neprirodzene. Zarovnanie sa validuje (spojenie "en" casti chunku sa musi presne zhodovat s
+// povodnou vetou) - ak nesedi alebo chyba, pouzije sa cela veta ako jeden celok (fallback).
+async function translateStoryToSlovak(content) {
+  const rawSentences = splitSentences(content);
+  const parts = rawSentences.map(splitCoreAndTrailingWs);
+  if (parts.length === 0) return { sentences: [] };
+
+  const numbered = parts.map((p, i) => `[${i}] ${p.core}`).join('\n');
+
+  const message = await client.messages.create(
+    {
+      model: 'claude-sonnet-5',
+      // Vystup musi obsahovat sk aj (volitelne) en/sk chunky pre kazdu vetu - typicky vyrazne
+      // viac textu ako samotna rozpravka, preto vyssi limit ako pri generovani.
+      max_tokens: 8000,
+      system:
+        'You translate a children\'s bedtime story from English to Slovak, sentence by sentence, for a bilingual family (the child listens/reads in English, while a simultaneous Slovak translation is shown side by side).\n\n' +
+        'IMPORTANT: Write all Slovak text using correct, complete Slovak orthography, INCLUDING every diacritic mark (á, ä, č, ď, é, í, ĺ, ľ, ň, ó, ô, ŕ, š, ť, ú, ý, ž). Never omit or simplify accent marks - "dávno" must never become "davno", "nežne" must never become "nezne", and so on.\n\n' +
+        'Below is a numbered list of English sentences (already trimmed of trailing whitespace). For EACH numbered sentence, provide a natural, fluent Slovak translation ("sk").\n\n' +
+        'Additionally, ONLY when a reasonably direct word-or-short-phrase correspondence exists between the English sentence and your natural Slovak translation (similar word order/structure), ALSO break that sentence into an ordered list of aligned "chunks" ("chunks"). Each chunk\'s "en" field MUST be a contiguous piece of the EXACT given English sentence, copied character-for-character (including internal spacing/punctuation) - concatenating all "en" chunks in order must reproduce the given English sentence exactly. Each chunk\'s "sk" is the Slovak translation of just that piece.\n\n' +
+        'If your natural Slovak translation is significantly reworded, reordered, or restructured compared to a literal rendering (common and expected due to grammar differences - ALWAYS prioritize a natural Slovak translation over a literal one), OMIT the "chunks" array for that sentence entirely rather than forcing an unnatural literal split.',
+      tools: [
+        {
+          name: 'attach_sentence_translations',
+          description: 'Provide Slovak translations (and optional word/phrase alignment) for each numbered English sentence.',
+          input_schema: {
+            type: 'object',
+            properties: {
+              sentences: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    index: { type: 'integer' },
+                    sk: { type: 'string', description: 'Natural, fluent Slovak translation of the whole sentence.' },
+                    chunks: {
+                      type: 'array',
+                      description: 'Optional fine-grained alignment - only when a direct word/phrase correspondence exists.',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          en: { type: 'string', description: 'Exact contiguous piece of the given English sentence.' },
+                          sk: { type: 'string', description: 'Slovak translation of just this piece.' },
+                        },
+                        required: ['en', 'sk'],
+                      },
+                    },
+                  },
+                  required: ['index', 'sk'],
+                },
+              },
+            },
+            required: ['sentences'],
+          },
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'attach_sentence_translations' },
+      messages: [{ role: 'user', content: numbered }],
+    },
+    // Preklad musi vygenerovat vyrazne viac textu ako samotna rozpravka (vety + volitelne
+    // slovne/frazove zarovnanie pre kazdu z nich), preto potrebuje dlhsi limit ako generovanie.
+    { timeout: 90_000 }
+  );
+
+  const toolBlock = message.content.find((block) => block.type === 'tool_use' && block.name === 'attach_sentence_translations');
+  let translated = toolBlock && toolBlock.input && toolBlock.input.sentences;
+  if (typeof translated === 'string') {
+    try {
+      translated = JSON.parse(translated);
+    } catch (err) {
+      translated = null;
+    }
+  }
+  if (!Array.isArray(translated)) {
+    throw new Error('Preklad sa nepodarilo spracovať (neplatná odpoveď modelu).');
+  }
+
+  const byIndex = new Map();
+  translated.forEach((entry) => {
+    if (entry && typeof entry.index === 'number') byIndex.set(entry.index, entry);
+  });
+
+  return {
+    sentences: parts.map((p, i) => {
+      const entry = byIndex.get(i);
+      const sk = (entry && typeof entry.sk === 'string' && entry.sk.trim()) || p.core;
+      let chunks = null;
+      if (entry && Array.isArray(entry.chunks) && entry.chunks.length > 0) {
+        const valid = entry.chunks.every((c) => c && typeof c.en === 'string' && typeof c.sk === 'string');
+        const reconstructed = valid ? entry.chunks.map((c) => c.en).join('') : null;
+        if (valid && reconstructed === p.core) {
+          chunks = entry.chunks.map((c) => ({ en: c.en, sk: c.sk }));
+        }
+      }
+      return { en: p.core, trailingWs: p.trailingWs, sk, chunks };
+    }),
+  };
+}
+
 // Anthropic API nezverejnuje endpoint na zistenie platnosti/expiracie kluca, takze jedinym
 // sposobom overenia je skutocny (velmi maly) request - "ping" spravou s max_tokens:1.
 async function checkApiKeyValidity() {
@@ -538,4 +664,4 @@ async function checkApiKeyValidity() {
   }
 }
 
-module.exports = { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics, checkApiKeyValidity };
+module.exports = { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics, translateStoryToSlovak, checkApiKeyValidity };

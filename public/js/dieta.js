@@ -9,8 +9,13 @@ const errorBox = document.getElementById('errorBox');
 const limitNotice = document.getElementById('limitNotice');
 const storyBox = document.getElementById('storyBox');
 const storyText = document.getElementById('storyText');
+const storyTranslationText = document.getElementById('storyTranslationText');
+const storyTranslationColumn = document.getElementById('storyTranslationColumn');
+const storyColumnLabelEn = document.getElementById('storyColumnLabelEn');
+const storyColumnLabelSk = document.getElementById('storyColumnLabelSk');
 const readBtn = document.getElementById('readBtn');
 const stopBtn = document.getElementById('stopBtn');
+const translateBtn = document.getElementById('translateBtn');
 const newStoryBtn = document.getElementById('newStoryBtn');
 const reportBtn = document.getElementById('reportBtn');
 const pastHistoryList = document.getElementById('pastHistoryList');
@@ -32,10 +37,16 @@ let wordSpans = [];
 let wordCursor = 0;
 let highlightedSpan = null;
 let lastSoundSentence = -Infinity;
+let translationState = null; // { sentences: [{ startChar, endChar, el, chunks: [{startChar,endChar,el}] | null }] }
+let highlightedTranslationEl = null;
+let translationVisible = false;
+let currentTranslationCache = null;
 
 async function initChild() {
   await initLanguage();
   document.title = t('dieta_title');
+  storyColumnLabelEn.textContent = `🇬🇧 ${t('language_option_en')}`;
+  storyColumnLabelSk.textContent = `🇸🇰 ${t('language_option_sk')}`;
 
   if (!childId) {
     window.location.href = 'index.html';
@@ -111,6 +122,12 @@ class LimitError extends Error {
   }
 }
 
+function newParagraphEl() {
+  const p = document.createElement('div');
+  p.className = 'story-paragraph';
+  return p;
+}
+
 function renderStoryText(text) {
   storyText.innerHTML = '';
   wordSpans = [];
@@ -118,17 +135,34 @@ function renderStoryText(text) {
   let match;
   let lastIndex = 0;
   let sentenceIndex = 0;
+  let paragraph = newParagraphEl();
+  storyText.appendChild(paragraph);
   while ((match = wordRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       const gap = text.slice(lastIndex, match.index);
-      storyText.appendChild(document.createTextNode(gap));
+      // Odstavcovy zlom (dve a viac po sebe iducich noviek) zacina novy "story-paragraph" div
+      // namiesto doslovneho vlozenia medzery - odsadenie odstavcov rieši CSS margin, vdaka comu
+      // sa daju odseky medzi originalom a prekladom neskôr zarovnat na rovnaku vysku (viz
+      // syncParagraphHeights).
+      if (/\n\s*\n/.test(gap)) {
+        paragraph = newParagraphEl();
+        storyText.appendChild(paragraph);
+      } else {
+        paragraph.appendChild(document.createTextNode(gap));
+      }
     }
+    const startIndex = match.index;
     const span = document.createElement('span');
     span.className = 'story-word';
     span.textContent = match[0];
-    span.dataset.start = match.index;
+    span.dataset.start = startIndex;
     span.dataset.sentence = sentenceIndex;
-    storyText.appendChild(span);
+    // Klik na slovo ho zvyrazni (a ak je zobrazeny preklad, zvyrazni aj jeho pripadny SK
+    // pendant vpravo) - funguje nezavisle od toho, ci prave bezi citanie nahlas. "startIndex" je
+    // zamerne lokalna konstanta (nie "match.index" priamo) - "match" sa v cykle prepisuje, takze
+    // by v uzavere po skonceni cyklu ukazoval na null.
+    span.addEventListener('click', () => highlightAtCharIndex(startIndex));
+    paragraph.appendChild(span);
     wordSpans.push(span);
     lastIndex = match.index + match[0].length;
     if (/[.!?]/.test(match[0])) {
@@ -136,13 +170,15 @@ function renderStoryText(text) {
     }
   }
   if (lastIndex < text.length) {
-    storyText.appendChild(document.createTextNode(text.slice(lastIndex)));
+    paragraph.appendChild(document.createTextNode(text.slice(lastIndex)));
   }
 }
 
 function resetHighlight() {
   if (highlightedSpan) highlightedSpan.classList.remove('story-word-active');
   highlightedSpan = null;
+  if (highlightedTranslationEl) highlightedTranslationEl.classList.remove('story-word-active');
+  highlightedTranslationEl = null;
   wordCursor = 0;
   lastSoundSentence = -Infinity;
 }
@@ -158,16 +194,136 @@ function maybeTriggerSound(wordSpan) {
   playSoundEffect(soundType);
 }
 
-function highlightAtCharIndex(charIndex) {
-  while (wordCursor + 1 < wordSpans.length && Number(wordSpans[wordCursor + 1].dataset.start) <= charIndex) {
-    wordCursor += 1;
+// Najde posledny slovny span, ktoreho start <= charIndex. Zamerne ide o uplne prehladanie (nie
+// inkrementalny kurzor) - vdaka tomu funguje rovnako spolahlivo pre postupne (monotonne rastuce)
+// udalosti pri citani nahlas, ako aj pre klik na lubovolne slovo v lubovolnom poradi (aj spatne).
+function findWordIndexAtChar(charIndex) {
+  let idx = -1;
+  for (let i = 0; i < wordSpans.length; i += 1) {
+    if (Number(wordSpans[i].dataset.start) <= charIndex) {
+      idx = i;
+    } else {
+      break;
+    }
   }
-  const target = wordSpans[wordCursor];
+  return idx;
+}
+
+function highlightAtCharIndex(charIndex) {
+  const idx = findWordIndexAtChar(charIndex);
+  if (idx === -1) return;
+  wordCursor = idx;
+  const target = wordSpans[idx];
   if (target && target !== highlightedSpan) {
     if (highlightedSpan) highlightedSpan.classList.remove('story-word-active');
     target.classList.add('story-word-active');
     highlightedSpan = target;
     target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  if (translationVisible) highlightTranslationAtCharIndex(charIndex);
+}
+
+function renderTranslation(translation) {
+  storyTranslationText.innerHTML = '';
+  const sentences = [];
+  let cursor = 0;
+  let paragraph = newParagraphEl();
+  storyTranslationText.appendChild(paragraph);
+
+  (translation.sentences || []).forEach((s) => {
+    const startChar = cursor;
+    const en = s.en || '';
+    const trailingWs = s.trailingWs || '';
+    cursor = startChar + en.length;
+    const endChar = cursor;
+    cursor += trailingWs.length;
+
+    if (s.chunks && s.chunks.length > 0) {
+      const chunkEls = [];
+      let localCursor = 0;
+      s.chunks.forEach((c) => {
+        const chunkStart = localCursor;
+        localCursor += (c.en || '').length;
+        const span = document.createElement('span');
+        span.className = 'translation-chunk';
+        span.textContent = c.sk;
+        paragraph.appendChild(span);
+        paragraph.appendChild(document.createTextNode(' '));
+        chunkEls.push({ startChar: startChar + chunkStart, endChar: startChar + localCursor, el: span });
+      });
+      sentences.push({ startChar, endChar, chunks: chunkEls });
+    } else {
+      const span = document.createElement('span');
+      span.className = 'translation-chunk';
+      span.textContent = s.sk || s.en;
+      paragraph.appendChild(span);
+      sentences.push({ startChar, endChar, chunks: null, el: span });
+    }
+
+    // Rovnaka logika odstavcoveho zlomu ako v renderStoryText - "trailingWs" je presny useik
+    // povodneho anglickeho textu, takze presne odzrkadluje, kde bol v originali odstavec.
+    if (/\n\s*\n/.test(trailingWs)) {
+      paragraph = newParagraphEl();
+      storyTranslationText.appendChild(paragraph);
+    } else {
+      paragraph.appendChild(document.createTextNode(trailingWs || ' '));
+    }
+  });
+
+  translationState = { sentences };
+}
+
+function resetParagraphHeights(container) {
+  container.querySelectorAll(':scope > .story-paragraph').forEach((p) => {
+    p.style.minHeight = '';
+  });
+}
+
+// Zarovna kazdy par odstavcov (original a jeho preklad) na rovnaku vysku, aby boli vizualne
+// pekne vedla seba aj ked ma niektory z jazykov na danom mieste dlhsi/kratsi text.
+function syncParagraphHeights() {
+  const enParas = storyText.querySelectorAll(':scope > .story-paragraph');
+  const skParas = storyTranslationText.querySelectorAll(':scope > .story-paragraph');
+  const count = Math.max(enParas.length, skParas.length);
+  for (let i = 0; i < count; i += 1) {
+    if (enParas[i]) enParas[i].style.minHeight = '';
+    if (skParas[i]) skParas[i].style.minHeight = '';
+  }
+  for (let i = 0; i < count; i += 1) {
+    const target = Math.max(enParas[i] ? enParas[i].offsetHeight : 0, skParas[i] ? skParas[i].offsetHeight : 0);
+    if (enParas[i]) enParas[i].style.minHeight = `${target}px`;
+    if (skParas[i]) skParas[i].style.minHeight = `${target}px`;
+  }
+}
+
+window.addEventListener('resize', () => {
+  if (translationVisible) syncParagraphHeights();
+});
+
+function findTranslationSentenceAt(charIndex) {
+  if (!translationState) return null;
+  return translationState.sentences.find((s) => charIndex >= s.startChar && charIndex < s.endChar) || null;
+}
+
+function highlightTranslationAtCharIndex(charIndex) {
+  if (!translationState) return;
+  const sentence = findTranslationSentenceAt(charIndex);
+  let target = null;
+  if (sentence) {
+    if (sentence.chunks) {
+      const chunk = sentence.chunks.find((c) => charIndex >= c.startChar && charIndex < c.endChar);
+      target = chunk ? chunk.el : sentence.chunks[sentence.chunks.length - 1].el;
+    } else {
+      target = sentence.el;
+    }
+  }
+  if (target !== highlightedTranslationEl) {
+    if (highlightedTranslationEl) highlightedTranslationEl.classList.remove('story-word-active');
+    if (target) {
+      target.classList.add('story-word-active');
+      target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    highlightedTranslationEl = target;
   }
 }
 
@@ -203,6 +359,20 @@ function applyStoryResponse(data) {
   renderStoryText(storyRawText);
   resetHighlight();
   window.speechSynthesis.cancel();
+
+  // Preklad je viazany na konkretnu rozpravku - pri kazdej novej/znovu-prehratej rozpravke ho
+  // resetujeme; ak uz bola predtym prelozena (napr. z historie), pouzijeme ulozenu kopiu bez
+  // noveho volania na server.
+  translationState = null;
+  currentTranslationCache = data.translation || null;
+  translationVisible = false;
+  storyTranslationText.innerHTML = '';
+  storyTranslationColumn.style.display = 'none';
+  storyColumnLabelEn.style.display = 'none';
+  translateBtn.disabled = false;
+  translateBtn.textContent = t('dieta_translate_btn');
+  translateBtn.style.display = currentStoryLang === 'en' ? 'inline-block' : 'none';
+
   storyBox.style.display = 'block';
   storyBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
   resetReportButton(!!data.reported);
@@ -376,6 +546,7 @@ async function loadPastHistory() {
         language: s.language || snapshot.language,
         soundsEnabled: snapshot.soundsEnabled,
         soundCues: s.soundCues || [],
+        translation: s.translation || null,
       });
       fetch(`api/story/${s.id}/replay`, { method: 'POST' }).catch(() => {});
     });
@@ -483,10 +654,56 @@ async function loadPastHistory() {
   });
 }
 
+async function toggleTranslation() {
+  if (translationVisible) {
+    storyTranslationColumn.style.display = 'none';
+    storyColumnLabelEn.style.display = 'none';
+    translationVisible = false;
+    translateBtn.textContent = t('dieta_translate_btn');
+    resetParagraphHeights(storyText);
+    return;
+  }
+
+  if (translationState) {
+    storyTranslationColumn.style.display = 'block';
+    storyColumnLabelEn.style.display = 'block';
+    translationVisible = true;
+    translateBtn.textContent = t('dieta_translate_hide_btn');
+    syncParagraphHeights();
+    return;
+  }
+
+  hideError();
+  translateBtn.disabled = true;
+  translateBtn.innerHTML = `<span class="spinner"></span>${t('dieta_translating')}`;
+  try {
+    let translation = currentTranslationCache;
+    if (!translation) {
+      const res = await fetch(`api/story/${currentStoryId}/translate`, { method: 'POST' });
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error(data.error || t('error_generic'));
+      translation = data.translation;
+      currentTranslationCache = translation;
+    }
+    storyTranslationColumn.style.display = 'block';
+    storyColumnLabelEn.style.display = 'block';
+    renderTranslation(translation);
+    syncParagraphHeights();
+    translationVisible = true;
+    translateBtn.textContent = t('dieta_translate_hide_btn');
+  } catch (err) {
+    showError(err.message);
+    translateBtn.textContent = t('dieta_translate_btn');
+  } finally {
+    translateBtn.disabled = false;
+  }
+}
+
 generateBtn.addEventListener('click', generateStory);
 surpriseBtn.addEventListener('click', generateSurpriseStory);
 readBtn.addEventListener('click', readAloud);
 stopBtn.addEventListener('click', stopReading);
+translateBtn.addEventListener('click', toggleTranslation);
 reportBtn.addEventListener('click', reportCurrentStory);
 newStoryBtn.addEventListener('click', () => {
   window.speechSynthesis.cancel();

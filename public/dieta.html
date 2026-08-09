@@ -35,10 +35,20 @@
       </div>
 
       <div id="storyBox" style="display: none">
-        <div id="storyText" class="story-text"></div>
+        <div id="storyColumns" class="story-columns">
+          <div class="story-column">
+            <p class="subtitle story-column-label" id="storyColumnLabelEn" style="display: none"></p>
+            <div id="storyText" class="story-text"></div>
+          </div>
+          <div class="story-column" id="storyTranslationColumn" style="display: none">
+            <p class="subtitle story-column-label" id="storyColumnLabelSk"></p>
+            <div id="storyTranslationText" class="story-text"></div>
+          </div>
+        </div>
         <div class="actions-row">
           <button id="readBtn" data-i18n="dieta_read_btn">🔊 Prečítať nahlas</button>
           <button id="stopBtn" class="secondary" style="display: none" data-i18n="dieta_stop_btn">⏹ Zastaviť</button>
+          <button id="translateBtn" class="secondary" style="display: none" data-i18n="dieta_translate_btn">🌐 Simultánny preklad</button>
           <button id="newStoryBtn" class="secondary" data-i18n="dieta_new_story_btn">📝 Nová rozprávka</button>
           <button id="reportBtn" class="secondary" data-i18n="dieta_report_btn">😟 Nahlásiť rodičovi</button>
         </div>
