@@ -22,7 +22,9 @@ const pastHistoryList = document.getElementById('pastHistoryList');
 const dailyLimitHint = document.getElementById('dailyLimitHint');
 const wordTranslationBubble = document.getElementById('wordTranslationBubble');
 
-const SOUND_SENTENCE_GAP = 2;
+// Minimalny pocet viet medzi dvoma zvukovymi efektami - 1 znamena "najviac raz v kazdej vete"
+// (zvuk sa moze spustit hned v dalsej vete, nie skor).
+const SOUND_SENTENCE_GAP = 1;
 
 const childId = new URLSearchParams(window.location.search).get('child');
 
