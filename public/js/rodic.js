@@ -285,6 +285,9 @@ childForm.addEventListener('submit', async (e) => {
   });
   const data = await res.json();
   if (!res.ok) {
+    if (data.limitReached === 'children') {
+      resetChildForm();
+    }
     childFormError.textContent = data.error || t('error_generic');
     childFormError.style.display = 'block';
     return;
@@ -563,7 +566,12 @@ saveSettingsBtn.addEventListener('click', async () => {
   document.title = t('rodic_title');
   populateVoiceSelect();
   await loadHistory();
-  settingsMsg.textContent = t('settings_saved_msg');
+  if (data.maxLengthClamped) {
+    maxLengthInput.value = data.maxLength;
+    settingsMsg.textContent = `${t('settings_saved_msg')} ${t('max_length_clamped_msg')}`;
+  } else {
+    settingsMsg.textContent = t('settings_saved_msg');
+  }
   settingsMsg.style.display = 'block';
 });
 

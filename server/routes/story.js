@@ -1,10 +1,13 @@
 const express = require('express');
 const { getSettings, saveSettings, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild } = require('../store');
 const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics } = require('../claude');
-const { t } = require('../i18n');
+const { t, dailyLimitMessage } = require('../i18n');
 const { logEvent } = require('../log-store');
 
 const router = express.Router({ mergeParams: true });
+
+const DAILY_STORY_LIMIT = 3;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function requireParentAuth(req, res, next) {
   const { tenant } = req.params;
@@ -21,6 +24,11 @@ function sanitizeCharacterNote(text) {
 
 function stripHistoryPrefix(text) {
   return String(text || '').replace(/^(🎁|↳)\s*/, '');
+}
+
+function countStoriesInLast24h(tenant, childId) {
+  const cutoff = Date.now() - DAY_MS;
+  return getStories(tenant).filter((s) => s.childId === childId && new Date(s.createdAt).getTime() >= cutoff).length;
 }
 
 async function runGeneration(tenant, settings, child, { childPrompt, previousContent, characterNote, continuesFrom, historyTitle }) {
@@ -94,6 +102,13 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: t('childRequired', settings.language) });
   }
 
+  if (countStoriesInLast24h(tenant, child.id) >= DAILY_STORY_LIMIT) {
+    return res.status(429).json({
+      error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language }),
+      limitReached: 'daily',
+    });
+  }
+
   let childPrompt;
   let historyTitle;
   if (surprise) {
@@ -135,6 +150,13 @@ router.post('/continue', async (req, res) => {
   const child = previousStory.childId ? getChild(tenant, previousStory.childId) : null;
   if (!child) {
     return res.status(404).json({ error: t('childNotFound', settings.language) });
+  }
+
+  if (countStoriesInLast24h(tenant, child.id) >= DAILY_STORY_LIMIT) {
+    return res.status(429).json({
+      error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language }),
+      limitReached: 'daily',
+    });
   }
 
   try {

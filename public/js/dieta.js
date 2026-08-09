@@ -5,6 +5,7 @@ const promptInput = document.getElementById('promptInput');
 const generateBtn = document.getElementById('generateBtn');
 const surpriseBtn = document.getElementById('surpriseBtn');
 const errorBox = document.getElementById('errorBox');
+const limitNotice = document.getElementById('limitNotice');
 const storyBox = document.getElementById('storyBox');
 const storyText = document.getElementById('storyText');
 const readBtn = document.getElementById('readBtn');
@@ -74,6 +75,22 @@ function showError(msg) {
 
 function hideError() {
   errorBox.style.display = 'none';
+}
+
+function showLimitNotice(msg) {
+  limitNotice.textContent = msg;
+  limitNotice.style.display = 'block';
+}
+
+function hideLimitNotice() {
+  limitNotice.style.display = 'none';
+}
+
+class LimitError extends Error {
+  constructor(message) {
+    super(message);
+    this.isLimitError = true;
+  }
 }
 
 function renderStoryText(text) {
@@ -185,6 +202,7 @@ async function parseJsonResponse(res) {
 
 async function requestStory(body) {
   hideError();
+  hideLimitNotice();
   storyBox.style.display = 'none';
   window.speechSynthesis.cancel();
 
@@ -195,6 +213,10 @@ async function requestStory(body) {
   });
   const data = await parseJsonResponse(res);
   if (!res.ok) {
+    if (data.limitReached) {
+      showLimitNotice(data.error || t('error_generic'));
+      throw new LimitError(data.error);
+    }
     throw new Error(data.error || t('error_generic'));
   }
   applyStoryResponse(data);
@@ -213,7 +235,7 @@ async function generateStory() {
   try {
     await requestStory({ prompt, childId });
   } catch (err) {
-    showError(err.message);
+    if (!err.isLimitError) showError(err.message);
   } finally {
     generateBtn.disabled = false;
     surpriseBtn.disabled = false;
@@ -228,7 +250,7 @@ async function generateSurpriseStory() {
   try {
     await requestStory({ surprise: true, childId });
   } catch (err) {
-    showError(err.message);
+    if (!err.isLimitError) showError(err.message);
   } finally {
     generateBtn.disabled = false;
     surpriseBtn.disabled = false;
@@ -373,6 +395,7 @@ async function loadPastHistory() {
 
     continueConfirmBtn.addEventListener('click', async () => {
       hideError();
+      hideLimitNotice();
       continueConfirmBtn.disabled = true;
       continueConfirmBtn.innerHTML = `<span class="spinner"></span>${t('dieta_continue_generating')}`;
       try {
@@ -383,6 +406,10 @@ async function loadPastHistory() {
         });
         const resData = await parseJsonResponse(res);
         if (!res.ok) {
+          if (resData.limitReached) {
+            showLimitNotice(resData.error || t('error_generic'));
+            throw new LimitError(resData.error);
+          }
           throw new Error(resData.error || t('error_generic'));
         }
         continueForm.style.display = 'none';
@@ -390,7 +417,7 @@ async function loadPastHistory() {
         applyStoryResponse(resData);
         loadPastHistory();
       } catch (err) {
-        showError(err.message);
+        if (!err.isLimitError) showError(err.message);
       } finally {
         continueConfirmBtn.disabled = false;
         continueConfirmBtn.textContent = t('dieta_continue_confirm_btn');

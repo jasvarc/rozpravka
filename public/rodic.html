@@ -35,10 +35,11 @@
 
       <div class="field">
         <label data-i18n="children_label">Deti v rodine</label>
+        <p class="subtitle" style="margin-top: 2px" data-i18n="children_limit_hint">Rodina môže mať najviac 5 detí.</p>
         <div id="childrenList"></div>
         <form id="childForm" class="actions-row" style="flex-wrap: wrap">
           <input type="text" id="childNameInput" data-i18n-placeholder="child_name_placeholder" placeholder="Meno" style="flex: 2; min-width: 120px" />
-          <input type="number" id="childAgeInput" data-i18n-placeholder="child_age_placeholder" placeholder="Vek" min="0" max="18" style="width: 80px" />
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="childAgeInput" data-i18n-placeholder="child_age_placeholder" placeholder="Vek" style="width: 80px" />
           <select id="childGenderInput" style="width: 130px">
             <option value="girl" data-i18n="child_gender_girl">Dievča</option>
             <option value="boy" data-i18n="child_gender_boy">Chlapec</option>
@@ -85,10 +86,11 @@
       <div class="field">
         <label data-i18n="length_label">Požadovaná dĺžka rozprávky (počet slov)</label>
         <div class="actions-row">
-          <input type="number" id="minLengthInput" min="20" max="2000" step="10" style="width: 100px" />
+          <input type="number" id="minLengthInput" min="20" max="1000" step="10" style="width: 100px" />
           <span data-i18n="length_between">od &ndash; do</span>
-          <input type="number" id="maxLengthInput" min="20" max="2000" step="10" style="width: 100px" />
+          <input type="number" id="maxLengthInput" min="20" max="1000" step="10" style="width: 100px" />
         </div>
+        <p class="subtitle" style="margin-top: 6px" data-i18n="length_limit_hint">Maximálna dĺžka rozprávky je 1000 slov.</p>
       </div>
 
       <div class="field">

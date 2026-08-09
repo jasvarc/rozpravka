@@ -5,6 +5,8 @@ const { logEvent } = require('../log-store');
 
 const router = express.Router({ mergeParams: true });
 
+const MAX_CHILDREN = 5;
+
 function requireParentAuth(req, res, next) {
   const { tenant } = req.params;
   if (!(req.session.auth && req.session.auth[tenant])) {
@@ -50,6 +52,9 @@ router.post('/:id/enter', (req, res) => {
 
 router.post('/', requireParentAuth, (req, res) => {
   const { tenant } = req.params;
+  if (getChildren(tenant).length >= MAX_CHILDREN) {
+    return res.status(400).json({ error: t('childrenLimitReached', getSettings(tenant).language), limitReached: 'children' });
+  }
   const name = sanitizeName(req.body.name);
   const age = sanitizeAge(req.body.age);
   const gender = sanitizeGender(req.body.gender);

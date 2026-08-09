@@ -25,10 +25,12 @@ function sanitizeMoralLesson(text) {
   return text.trim().slice(0, 300);
 }
 
+const MAX_STORY_LENGTH = 1000;
+
 function sanitizeLength(value, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
-  return Math.min(2000, Math.max(20, Math.round(n)));
+  return Math.min(5000, Math.max(20, Math.round(n)));
 }
 
 function sanitizeVoiceName(text) {
@@ -75,7 +77,11 @@ router.put('/', requireParentAuth, (req, res) => {
   const current = getSettings(tenant);
 
   const sanitizedMin = sanitizeLength(minLength, current.minLength);
-  const sanitizedMax = sanitizeLength(maxLength, current.maxLength);
+  let sanitizedMax = sanitizeLength(maxLength, current.maxLength);
+  const maxLengthClamped = sanitizedMax > MAX_STORY_LENGTH;
+  if (maxLengthClamped) {
+    sanitizedMax = MAX_STORY_LENGTH;
+  }
   if (sanitizedMin > sanitizedMax) {
     return res.status(400).json({ error: t('lengthOrderError', current.language) });
   }
@@ -95,7 +101,7 @@ router.put('/', requireParentAuth, (req, res) => {
     soundsEnabled: !!soundsEnabled,
   });
   const { pinHash, ...safe } = updated;
-  res.json(safe);
+  res.json({ ...safe, maxLengthClamped });
 });
 
 module.exports = router;
