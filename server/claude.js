@@ -512,7 +512,11 @@ async function suggestBlockedTopics({ content, childPrompt, language }) {
 // a odstavcov) - potrebne pre presne mapovanie znakovych indexov medzi originalom a prekladom.
 function splitSentences(text) {
   const raw = [];
-  const re = /[^.!?]+[.!?]+\s*/g;
+  // Po koncovej interpunkcii (.!?) mozu bezprostredne nasledovat zatvaracie uvodzovky/zatvorky
+  // BEZ medzery pred nimi (napr. `it."` ) - tie musia patrit do TEJTO vety, inak by regex zaradil
+  // uvodzovku (a s nou aj nasledujuci odstavcovy zlom \n\n) do JADRA nasledujucej vety namiesto
+  // do trailingWs tejto vety, co by pri renderovani prekladu stratilo hranicu odstavca.
+  const re = /[^.!?]+[.!?]+["'”’»)\]]*\s*/g;
   let match;
   let lastIndex = 0;
   while ((match = re.exec(text)) !== null) {
