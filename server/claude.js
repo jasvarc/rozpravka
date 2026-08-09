@@ -288,6 +288,9 @@ function buildSystemPrompt({ allowedTopics, blockedTopics, moralLesson, minLengt
     isEnglish
       ? `Length: approximately ${minLength}-${maxLength} words, a pleasant, slow ending that induces sleep.`
       : `Dĺžka: približne ${minLength}-${maxLength} slov, príjemný a pomalý záver, ktorý navodzuje spánok.`,
+    isEnglish
+      ? 'Avoid long sentences. Whenever a thought would naturally need a long sentence, split it into several shorter sentences instead, without losing any meaning - short sentences are easier to follow and read aloud.'
+      : 'Nepoužívaj dlhé vety. Vždy, keď by myšlienka prirodzene vyžadovala dlhú vetu, radšej ju rozdeľ na viacero kratších viet bez straty zmyslu textu - krátke vety sa lepšie sledujú a lepšie sa nahlas čítajú.',
   ];
 
   if (childName) {
