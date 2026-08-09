@@ -28,9 +28,15 @@ const SOUND_SENTENCE_GAP = 1;
 
 // Niektore mobilne prehliadace (typicky Android Chrome) nespolahlivo posielaju udalost
 // "onboundary" pocas citania nahlas - bez nej sa nezvyraznuje text ani nespustaju zvukove
-// efekty. ESTIMATED_WPM_AT_RATE_1 je priblizny pocet slov za minutu pri rychlosti citania 1.0,
-// pouzity na odhad polohy citania, ak sa realne udalosti nezacnu objavovat vcas.
-const ESTIMATED_WPM_AT_RATE_1 = 150;
+// efekty. Ak sa realne udalosti nezacnu objavovat vcas, prevezme odhadovany "fallback" casovac.
+// Namiesto jednoducheho rovnomerneho tempa (slov za minutu, ktore casom citelne rozsynchronizuje
+// text od hlasu, hlavne po interpunkcii) pocita pre kazde slovo odhadovany cas zaciatku podla
+// poctu znakov (dlhsie slovo trva dlhsie vyslovit) a pripocita kratku pauzu po konci vety/casti
+// vety - vdaka comu tempo citania oveľa lepsie sleduje realne tempo hlasu vratane odmlk.
+const ESTIMATED_BASE_WORD_SECONDS = 0.15;
+const ESTIMATED_CHAR_SECONDS = 0.045;
+const ESTIMATED_SENTENCE_PAUSE_SECONDS = 0.35;
+const ESTIMATED_CLAUSE_PAUSE_SECONDS = 0.12;
 const ESTIMATED_HIGHLIGHT_START_DELAY = 450;
 const ESTIMATED_HIGHLIGHT_TICK_MS = 90;
 
@@ -52,6 +58,8 @@ let boundaryEventFired = false;
 let estimatedReadStartTime = 0;
 let estimatedHighlightStartDelay = null;
 let estimatedHighlightTimer = null;
+let estimatedWordTimings = []; // kumulativny (neskalovany, t.j. pri rychlosti 1.0) cas zaciatku kazdeho slova v sekundach
+let estimatedTimingCursor = 0;
 let translationState = null; // { sentences: [{ startChar, endChar, el, chunks: [{startChar,endChar,el}] | null }] }
 let highlightedTranslationEl = null;
 let translationVisible = false;
@@ -567,18 +575,40 @@ async function generateSurpriseStory() {
   }
 }
 
-// Odhaduje polohu citania podla uplynuteho casu a rychlosti (namiesto skutocnych "onboundary"
-// udalosti prehliadaca), a rovnako ako skutocna udalost zvyraznuje slovo aj spusta pripadny
-// zvukovy efekt. Beží iba pokial sa realne "onboundary" udalosti vobec nezacnu objavovat.
+// Predpocita pre kazde slovo odhadovany (neskalovany) cas jeho zaciatku - dlzka slova podla
+// poctu znakov plus prípadna pauza po interpunkcii na jeho konci. Pocita sa raz na zaciatku
+// citania (nie pri kazdom ticku), nasledne sa len porovnava s uplynutym casom.
+function buildEstimatedWordTimings() {
+  const timings = [];
+  let t = 0;
+  for (let i = 0; i < wordSpans.length; i += 1) {
+    timings.push(t);
+    const word = wordSpans[i].textContent;
+    t += ESTIMATED_BASE_WORD_SECONDS + word.length * ESTIMATED_CHAR_SECONDS;
+    const lastChar = word[word.length - 1];
+    if (/[.!?]/.test(lastChar)) t += ESTIMATED_SENTENCE_PAUSE_SECONDS;
+    else if (/[,;:]/.test(lastChar)) t += ESTIMATED_CLAUSE_PAUSE_SECONDS;
+  }
+  return timings;
+}
+
+// Odhaduje polohu citania podla uplynuteho casu a predpocitanej tabulky casov slov (namiesto
+// skutocnych "onboundary" udalosti prehliadaca), a rovnako ako skutocna udalost zvyraznuje slovo
+// aj spusta pripadny zvukovy efekt. Beží iba pokial sa realne "onboundary" udalosti vobec
+// nezacnu objavovat. "estimatedTimingCursor" postupuje len dopredu (cas nikdy necuvne).
 function estimatedHighlightTick() {
   if (boundaryEventFired) {
     stopEstimatedHighlight();
     return;
   }
-  const elapsedSec = (performance.now() - estimatedReadStartTime) / 1000;
-  const wordsPerSecond = (ESTIMATED_WPM_AT_RATE_1 * (currentVoiceRate || 1)) / 60;
-  const idx = Math.min(wordSpans.length - 1, Math.floor(elapsedSec * wordsPerSecond));
-  const target = wordSpans[idx];
+  const elapsedSec = ((performance.now() - estimatedReadStartTime) / 1000) * (currentVoiceRate || 1);
+  while (
+    estimatedTimingCursor < estimatedWordTimings.length - 1 &&
+    estimatedWordTimings[estimatedTimingCursor + 1] <= elapsedSec
+  ) {
+    estimatedTimingCursor += 1;
+  }
+  const target = wordSpans[estimatedTimingCursor];
   if (!target) return;
   highlightAtCharIndex(Number(target.dataset.start));
   maybeTriggerSound(target);
@@ -587,6 +617,8 @@ function estimatedHighlightTick() {
 function startEstimatedHighlight() {
   stopEstimatedHighlight();
   boundaryEventFired = false;
+  estimatedWordTimings = buildEstimatedWordTimings();
+  estimatedTimingCursor = 0;
   estimatedReadStartTime = performance.now();
   // Kratke oneskorenie predtym, nez zacneme s odhadom - ak prehliadac skutocne posiela udalosti
   // "onboundary" (bezny pripad na desktope), medzitym uz nastavia boundaryEventFired a odhadovany
