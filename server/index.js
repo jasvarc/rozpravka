@@ -83,6 +83,18 @@ app.use('/:tenant', (req, res, next) => {
   next();
 });
 
+// Bez lomitka na konci (napr. /rozpravky/meno) by express.static nizsie samo presmerovalo
+// na absolutnu cestu bez prefixu /rozpravky (Node o Apache prefixe nevie) - taky Location
+// header Apache ProxyPassReverse neprepise (nezacina URL backendu), takze by stranka
+// skoncila mimo proxy scope a vratila 404. Relativny redirect (bez uvodneho lomitka) si
+// prehliadac dopocita voci povodnej URL vratane prefixu spravne.
+app.use('/:tenant', (req, res, next) => {
+  if (req.path === '/' && !req.originalUrl.endsWith('/')) {
+    return res.redirect(`${req.params.tenant}/`);
+  }
+  next();
+});
+
 app.use('/:tenant', express.static(PUBLIC_DIR));
 
 app.get('/', (req, res) => {
