@@ -1,6 +1,6 @@
 const express = require('express');
 const { listTenants, deleteTenant, resetTenantPin, isValidTenantName } = require('../store');
-const { getEntries } = require('../log-store');
+const { getEntries, logEvent } = require('../log-store');
 
 const router = express.Router();
 
@@ -26,6 +26,7 @@ router.delete('/tenants/:name', (req, res) => {
     return res.status(400).json({ error: 'Neplatný názov.' });
   }
   deleteTenant(name);
+  logEvent(`Administrátor zmazal rodinu "${name}".`);
   res.json({ ok: true });
 });
 
@@ -35,6 +36,7 @@ router.post('/tenants/:name/reset-pin', (req, res) => {
     return res.status(400).json({ error: 'Neplatný názov.' });
   }
   resetTenantPin(name);
+  logEvent(`Administrátor resetoval PIN pre rodinu "${name}".`);
   res.json({ ok: true });
 });
 

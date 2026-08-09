@@ -8,8 +8,12 @@ function addEntry(entry) {
   if (entries.length > MAX_ENTRIES) entries.shift();
 }
 
+function logEvent(message) {
+  addEntry({ level: 'event', message });
+}
+
 function getEntries(limit = 300) {
   return entries.slice(-limit).reverse();
 }
 
-module.exports = { addEntry, getEntries };
+module.exports = { addEntry, logEvent, getEntries };

@@ -30,23 +30,10 @@ console.error = (...args) => {
   addLogEntry({ level: 'error', message: args.map(String).join(' ') });
 };
 
-const NON_TENANT_PREFIXES = new Set(['css', 'js', 'api']);
-
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
-    const durationMs = Date.now() - start;
-    console.log(`${req.method} ${req.originalUrl} -> ${res.statusCode} (${durationMs}ms)`);
-    const firstSegment = req.originalUrl.split('/').filter(Boolean)[0];
-    const tenant = firstSegment && !NON_TENANT_PREFIXES.has(firstSegment) ? firstSegment : null;
-    addLogEntry({
-      level: 'request',
-      method: req.method,
-      path: req.originalUrl,
-      tenant,
-      statusCode: res.statusCode,
-      durationMs,
-    });
+    console.log(`${req.method} ${req.originalUrl} -> ${res.statusCode} (${Date.now() - start}ms)`);
   });
   next();
 });

@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { getSettings, saveSettings } = require('../store');
 const { t } = require('../i18n');
+const { logEvent } = require('../log-store');
 
 const router = express.Router({ mergeParams: true });
 
@@ -32,6 +33,7 @@ router.post('/setup', (req, res) => {
   saveSettings(tenant, { pinHash, createdAt: settings.createdAt || new Date().toISOString() });
   req.session.auth = req.session.auth || {};
   req.session.auth[tenant] = true;
+  logEvent(tenant === 'admin' ? 'Administrátor si vytvoril PIN.' : `Rodič si vytvoril PIN (rodina: ${tenant}).`);
   res.json({ ok: true });
 });
 
@@ -47,6 +49,7 @@ router.post('/login', (req, res) => {
   }
   req.session.auth = req.session.auth || {};
   req.session.auth[tenant] = true;
+  logEvent(tenant === 'admin' ? 'Administrátor sa prihlásil.' : `Rodič sa prihlásil (rodina: ${tenant}).`);
   res.json({ ok: true });
 });
 

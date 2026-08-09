@@ -51,6 +51,7 @@ async function initChild() {
     childContent.style.display = 'block';
     promptInput.focus();
     loadPastHistory();
+    fetch(`api/children/${childId}/enter`, { method: 'POST' });
   } catch (err) {
     console.error('Nepodarilo sa overiť dieťa:', err);
     childNotFoundBox.style.display = 'block';
@@ -333,6 +334,7 @@ async function loadPastHistory() {
         soundsEnabled: snapshot.soundsEnabled,
         soundCues: s.soundCues || [],
       });
+      fetch(`api/story/${s.id}/replay`, { method: 'POST' });
     });
 
     const continueBtn = document.createElement('button');

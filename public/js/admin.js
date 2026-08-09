@@ -165,10 +165,8 @@ function renderLogEntry(entry) {
     line.className = 'log-line log-error';
     line.textContent = `[${time}] CHYBA: ${entry.message}`;
   } else {
-    const isErrorStatus = entry.statusCode >= 400;
-    line.className = isErrorStatus ? 'log-line log-error' : 'log-line';
-    const tenantPart = entry.tenant ? `[${entry.tenant}] ` : '';
-    line.textContent = `[${time}] ${tenantPart}${entry.method} ${entry.path} -> ${entry.statusCode} (${entry.durationMs}ms)`;
+    line.className = 'log-line';
+    line.textContent = `[${time}] ${entry.message}`;
   }
   return line;
 }

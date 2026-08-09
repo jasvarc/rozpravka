@@ -2,6 +2,7 @@ const express = require('express');
 const { getSettings, saveSettings, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild } = require('../store');
 const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics } = require('../claude');
 const { t } = require('../i18n');
+const { logEvent } = require('../log-store');
 
 const router = express.Router({ mergeParams: true });
 
@@ -62,6 +63,8 @@ async function runGeneration(tenant, settings, child, { childPrompt, previousCon
   if (soundCues.length > 0) {
     updateStory(tenant, record.id, { soundCues });
   }
+
+  logEvent(`Vygenerovaná rozprávka pre "${child.name}" (rodina: ${tenant}): ${historyTitle}`);
 
   return {
     content,
@@ -190,6 +193,17 @@ router.post('/:id/report', async (req, res) => {
     reportedAt: new Date().toISOString(),
     suggestedBlockedTopics,
   });
+  logEvent(`Dieťa "${story.childName}" nahlásilo rozprávku (rodina: ${tenant}): ${story.childPrompt}`);
+  res.json({ ok: true });
+});
+
+router.post('/:id/replay', (req, res) => {
+  const { tenant, id } = req.params;
+  const story = getStory(tenant, id);
+  if (!story) {
+    return res.status(404).json({ error: t('storyNotFound', getSettings(tenant).language) });
+  }
+  logEvent(`Rozprávka vypočutá znova pre "${story.childName}" (rodina: ${tenant}): ${story.childPrompt}`);
   res.json({ ok: true });
 });
 

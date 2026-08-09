@@ -1,6 +1,7 @@
 const express = require('express');
-const { getSettings, getChildren, addChild, updateChild, deleteChild } = require('../store');
+const { getSettings, getChildren, getChild, addChild, updateChild, deleteChild } = require('../store');
 const { t } = require('../i18n');
+const { logEvent } = require('../log-store');
 
 const router = express.Router({ mergeParams: true });
 
@@ -35,6 +36,16 @@ function sanitizeIntensity(value) {
 
 router.get('/', (req, res) => {
   res.json(getChildren(req.params.tenant));
+});
+
+router.post('/:id/enter', (req, res) => {
+  const { tenant, id } = req.params;
+  const child = getChild(tenant, id);
+  if (!child) {
+    return res.status(404).json({ error: t('childNotFound', getSettings(tenant).language) });
+  }
+  logEvent(`Dieťa "${child.name}" vstúpilo na svoju stránku (rodina: ${tenant}).`);
+  res.json({ ok: true });
 });
 
 router.post('/', requireParentAuth, (req, res) => {
