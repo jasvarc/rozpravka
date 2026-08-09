@@ -238,7 +238,10 @@ async function loadLogs() {
 function startLogsAutoRefresh() {
   stopLogsAutoRefresh();
   if (!logsAutoRefreshInput.checked) return;
-  logsInterval = setInterval(loadLogs, 5000);
+  logsInterval = setInterval(() => {
+    loadLogs();
+    loadHealth();
+  }, 5000);
 }
 
 function stopLogsAutoRefresh() {
