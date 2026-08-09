@@ -88,90 +88,88 @@ async function runGeneration(tenant, settings, child, { childPrompt, previousCon
 
 router.post('/', async (req, res) => {
   const { tenant } = req.params;
-  let settings;
   try {
-    settings = getSettings(tenant);
-  } catch (err) {
-    console.error('Chyba pri čítaní nastavení:', err);
-    return res.status(500).json({ error: t('unexpectedError', 'sk') });
-  }
+    const settings = getSettings(tenant);
 
-  const { prompt, childId, surprise } = req.body;
-  const child = typeof childId === 'string' ? getChild(tenant, childId) : null;
-  if (!child) {
-    return res.status(400).json({ error: t('childRequired', settings.language) });
-  }
-
-  if (countStoriesInLast24h(tenant, child.id) >= DAILY_STORY_LIMIT) {
-    return res.status(429).json({
-      error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language }),
-      limitReached: 'daily',
-    });
-  }
-
-  let childPrompt;
-  let historyTitle;
-  if (surprise) {
-    childPrompt = pickSurpriseTopic({ allowedTopics: settings.allowedTopics, age: child.age, language: settings.language });
-    historyTitle = `🎁 ${childPrompt}`.slice(0, 300);
-  } else {
-    if (typeof prompt !== 'string' || !prompt.trim()) {
-      return res.status(400).json({ error: t('promptRequired', settings.language) });
+    const { prompt, childId, surprise } = req.body;
+    const child = typeof childId === 'string' ? getChild(tenant, childId) : null;
+    if (!child) {
+      return res.status(400).json({ error: t('childRequired', settings.language) });
     }
-    childPrompt = prompt.trim().slice(0, 300);
-    historyTitle = childPrompt;
-  }
 
-  try {
-    const result = await runGeneration(tenant, settings, child, { childPrompt, historyTitle });
-    res.json(result);
+    if (countStoriesInLast24h(tenant, child.id) >= DAILY_STORY_LIMIT) {
+      return res.status(429).json({
+        error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language }),
+        limitReached: 'daily',
+      });
+    }
+
+    let childPrompt;
+    let historyTitle;
+    if (surprise) {
+      childPrompt = pickSurpriseTopic({ allowedTopics: settings.allowedTopics, age: child.age, language: settings.language });
+      historyTitle = `🎁 ${childPrompt}`.slice(0, 300);
+    } else {
+      if (typeof prompt !== 'string' || !prompt.trim()) {
+        return res.status(400).json({ error: t('promptRequired', settings.language) });
+      }
+      childPrompt = prompt.trim().slice(0, 300);
+      historyTitle = childPrompt;
+    }
+
+    try {
+      const result = await runGeneration(tenant, settings, child, { childPrompt, historyTitle });
+      res.json(result);
+    } catch (err) {
+      console.error('Chyba pri generovaní rozprávky:', err);
+      res.status(502).json({ error: t('storyGenerationFailed', settings.language) });
+    }
   } catch (err) {
-    console.error('Chyba pri generovaní rozprávky:', err);
-    res.status(502).json({ error: t('storyGenerationFailed', settings.language) });
+    console.error('Chyba pri spracovaní požiadavky na rozprávku:', err);
+    res.status(500).json({ error: t('unexpectedError', 'sk') });
   }
 });
 
 router.post('/continue', async (req, res) => {
   const { tenant } = req.params;
-  let settings;
   try {
-    settings = getSettings(tenant);
+    const settings = getSettings(tenant);
+
+    const { previousStoryId } = req.body;
+    const characterNote = sanitizeCharacterNote(req.body.characterNote);
+    const previousStory = typeof previousStoryId === 'string' ? getStory(tenant, previousStoryId) : null;
+    if (!previousStory) {
+      return res.status(404).json({ error: t('storyNotFound', settings.language) });
+    }
+    const child = previousStory.childId ? getChild(tenant, previousStory.childId) : null;
+    if (!child) {
+      return res.status(404).json({ error: t('childNotFound', settings.language) });
+    }
+
+    if (countStoriesInLast24h(tenant, child.id) >= DAILY_STORY_LIMIT) {
+      return res.status(429).json({
+        error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language }),
+        limitReached: 'daily',
+      });
+    }
+
+    try {
+      const historyTitle = `↳ ${previousStory.childPrompt}`.slice(0, 300);
+      const result = await runGeneration(tenant, settings, child, {
+        childPrompt: previousStory.childPrompt,
+        previousContent: previousStory.content,
+        characterNote,
+        continuesFrom: previousStory.id,
+        historyTitle,
+      });
+      res.json(result);
+    } catch (err) {
+      console.error('Chyba pri generovaní pokračovania:', err);
+      res.status(502).json({ error: t('storyGenerationFailed', settings.language) });
+    }
   } catch (err) {
-    console.error('Chyba pri čítaní nastavení:', err);
-    return res.status(500).json({ error: t('unexpectedError', 'sk') });
-  }
-
-  const { previousStoryId } = req.body;
-  const characterNote = sanitizeCharacterNote(req.body.characterNote);
-  const previousStory = typeof previousStoryId === 'string' ? getStory(tenant, previousStoryId) : null;
-  if (!previousStory) {
-    return res.status(404).json({ error: t('storyNotFound', settings.language) });
-  }
-  const child = previousStory.childId ? getChild(tenant, previousStory.childId) : null;
-  if (!child) {
-    return res.status(404).json({ error: t('childNotFound', settings.language) });
-  }
-
-  if (countStoriesInLast24h(tenant, child.id) >= DAILY_STORY_LIMIT) {
-    return res.status(429).json({
-      error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language }),
-      limitReached: 'daily',
-    });
-  }
-
-  try {
-    const historyTitle = `↳ ${previousStory.childPrompt}`.slice(0, 300);
-    const result = await runGeneration(tenant, settings, child, {
-      childPrompt: previousStory.childPrompt,
-      previousContent: previousStory.content,
-      characterNote,
-      continuesFrom: previousStory.id,
-      historyTitle,
-    });
-    res.json(result);
-  } catch (err) {
-    console.error('Chyba pri generovaní pokračovania:', err);
-    res.status(502).json({ error: t('storyGenerationFailed', settings.language) });
+    console.error('Chyba pri spracovaní požiadavky na pokračovanie:', err);
+    res.status(500).json({ error: t('unexpectedError', 'sk') });
   }
 });
 
@@ -198,25 +196,30 @@ router.get('/recent', (req, res, next) => {
 
 router.post('/:id/report', async (req, res) => {
   const { tenant, id } = req.params;
-  const settings = getSettings(tenant);
-  const story = getStory(tenant, id);
-  if (!story) {
-    return res.status(404).json({ error: t('storyNotFound', settings.language) });
+  try {
+    const settings = getSettings(tenant);
+    const story = getStory(tenant, id);
+    if (!story) {
+      return res.status(404).json({ error: t('storyNotFound', settings.language) });
+    }
+
+    const suggestedBlockedTopics = await suggestBlockedTopics({
+      content: story.content,
+      childPrompt: stripHistoryPrefix(story.childPrompt),
+      language: settings.language,
+    });
+
+    updateStory(tenant, id, {
+      reported: true,
+      reportedAt: new Date().toISOString(),
+      suggestedBlockedTopics,
+    });
+    logEvent(`Dieťa "${story.childName}" nahlásilo rozprávku (rodina: ${tenant}): ${story.childPrompt}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Chyba pri spracovaní nahlásenia rozprávky:', err);
+    res.status(500).json({ error: t('unexpectedError', 'sk') });
   }
-
-  const suggestedBlockedTopics = await suggestBlockedTopics({
-    content: story.content,
-    childPrompt: stripHistoryPrefix(story.childPrompt),
-    language: settings.language,
-  });
-
-  updateStory(tenant, id, {
-    reported: true,
-    reportedAt: new Date().toISOString(),
-    suggestedBlockedTopics,
-  });
-  logEvent(`Dieťa "${story.childName}" nahlásilo rozprávku (rodina: ${tenant}): ${story.childPrompt}`);
-  res.json({ ok: true });
 });
 
 router.post('/:id/replay', (req, res) => {
