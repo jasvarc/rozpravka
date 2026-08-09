@@ -26,6 +26,9 @@ const TRANSLATIONS = {
     dieta_error_empty_prompt: 'Napíš prosím, o čom má byť rozprávka.',
     dieta_error_bad_response: 'Server neodpovedal správne. Skús to prosím o chvíľu znova.',
     dieta_error_no_tts: 'Tento prehliadač bohužiaľ nevie čítať nahlas.',
+    dieta_error_voice_input: 'Rozpoznávanie reči sa nepodarilo. Skús to prosím znova, alebo napíš tému rukou.',
+    voice_input_btn_title: 'Povedz, o čom má byť rozprávka',
+    voice_input_btn_title_listening: 'Počúvam... (klikni pre zastavenie)',
     dieta_history_heading: '📖 Staršie rozprávky',
     dieta_history_empty: 'Zatiaľ žiadne staršie rozprávky.',
     dieta_favorite_badge: '⭐ obľúbená',
@@ -152,6 +155,9 @@ const TRANSLATIONS = {
     dieta_error_empty_prompt: 'Please write what the story should be about.',
     dieta_error_bad_response: 'The server did not respond correctly. Please try again shortly.',
     dieta_error_no_tts: "Unfortunately this browser can't read aloud.",
+    dieta_error_voice_input: 'Speech recognition failed. Please try again, or type the topic instead.',
+    voice_input_btn_title: 'Say what the story should be about',
+    voice_input_btn_title_listening: 'Listening... (click to stop)',
     dieta_history_heading: '📖 Past stories',
     dieta_history_empty: 'No past stories yet.',
     dieta_favorite_badge: '⭐ favorite',
@@ -275,6 +281,9 @@ function applyTranslations() {
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
     el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    el.title = t(el.dataset.i18nTitle);
   });
   document.documentElement.lang = currentLang;
 }

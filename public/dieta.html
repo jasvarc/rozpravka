@@ -18,7 +18,10 @@
       <p class="subtitle" id="childGreeting"></p>
 
       <div class="field">
-        <textarea id="promptInput" rows="3" data-i18n-placeholder="dieta_prompt_placeholder" placeholder="Napríklad: o drakovi, ktorý sa bál lietať..." maxlength="300"></textarea>
+        <div class="prompt-input-wrap">
+          <textarea id="promptInput" rows="3" data-i18n-placeholder="dieta_prompt_placeholder" placeholder="Napríklad: o drakovi, ktorý sa bál lietať..." maxlength="300"></textarea>
+          <button type="button" id="voiceInputBtn" class="mic-btn" data-i18n-title="voice_input_btn_title" title="Povedz, o čom má byť rozprávka">🎤</button>
+        </div>
       </div>
 
       <div class="actions-row">

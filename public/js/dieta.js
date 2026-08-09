@@ -21,6 +21,7 @@ const reportBtn = document.getElementById('reportBtn');
 const pastHistoryList = document.getElementById('pastHistoryList');
 const dailyLimitHint = document.getElementById('dailyLimitHint');
 const wordTranslationBubble = document.getElementById('wordTranslationBubble');
+const voiceInputBtn = document.getElementById('voiceInputBtn');
 
 // Minimalny pocet viet medzi dvoma zvukovymi efektami - 1 znamena "najviac raz v kazdej vete"
 // (zvuk sa moze spustit hned v dalsej vete, nie skor).
@@ -124,6 +125,56 @@ promptInput.addEventListener('keydown', (e) => {
     generateBtn.click();
   }
 });
+
+// Diktovanie temy hlasom namiesto pisania - rozpoznany text sa len vlozi do textboxu (nahradi
+// jeho obsah), dieta ho pred odoslanim moze este rucne upravit alebo rovno odoslat Enterom.
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognitionCtor) {
+  const recognition = new SpeechRecognitionCtor();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  let recognizing = false;
+
+  recognition.onstart = () => {
+    recognizing = true;
+    voiceInputBtn.classList.add('listening');
+    voiceInputBtn.title = t('voice_input_btn_title_listening');
+  };
+
+  recognition.onend = () => {
+    recognizing = false;
+    voiceInputBtn.classList.remove('listening');
+    voiceInputBtn.title = t('voice_input_btn_title');
+  };
+
+  recognition.onresult = (event) => {
+    promptInput.value = event.results[0][0].transcript.slice(0, 300);
+    promptInput.focus();
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error !== 'aborted' && event.error !== 'no-speech') {
+      showError(t('dieta_error_voice_input'));
+    }
+  };
+
+  voiceInputBtn.addEventListener('click', () => {
+    if (recognizing) {
+      recognition.stop();
+      return;
+    }
+    hideError();
+    recognition.lang = getLocaleTag();
+    try {
+      recognition.start();
+    } catch (err) {
+      // start() hodi vynimku, ak uz raz bezi (napr. dvojklik) - v takom pripade nic nerobime.
+    }
+  });
+} else {
+  voiceInputBtn.style.display = 'none';
+}
 
 function showError(msg) {
   errorBox.textContent = msg;
