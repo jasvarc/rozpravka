@@ -1,11 +1,15 @@
 const express = require('express');
-const { listTenants, deleteTenant, resetTenantPin, isValidTenantName } = require('../store');
+const { listTenants, deleteTenant, resetTenantPin, isValidTenantName, getUsageSummary } = require('../store');
 const { getEntries, logEvent } = require('../log-store');
 
 const router = express.Router();
 
 router.get('/tenants', (req, res) => {
   res.json(listTenants());
+});
+
+router.get('/usage', (req, res) => {
+  res.json(getUsageSummary());
 });
 
 router.get('/health', (req, res) => {

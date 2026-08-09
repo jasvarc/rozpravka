@@ -193,6 +193,48 @@ function listTenants() {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+const USAGE_WINDOWS = [
+  { key: 'h24', ms: 24 * 60 * 60 * 1000 },
+  { key: 'd7', ms: 7 * 24 * 60 * 60 * 1000 },
+  { key: 'd28', ms: 28 * 24 * 60 * 60 * 1000 },
+  { key: 'd365', ms: 365 * 24 * 60 * 60 * 1000 },
+];
+
+function countWords(text) {
+  if (!text) return 0;
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function summarizeStoriesByWindow(stories, now) {
+  const summary = {};
+  USAGE_WINDOWS.forEach(({ key, ms }) => {
+    const cutoff = now - ms;
+    const inWindow = stories.filter((s) => new Date(s.createdAt).getTime() >= cutoff);
+    summary[key] = {
+      count: inWindow.length,
+      words: inWindow.reduce((sum, s) => sum + countWords(s.content), 0),
+    };
+  });
+  return summary;
+}
+
+function getUsageSummary() {
+  const now = Date.now();
+  return listTenants().map(({ name }) => {
+    const stories = getStories(name);
+    const children = getChildren(name);
+    return {
+      tenant: name,
+      family: summarizeStoriesByWindow(stories, now),
+      children: children.map((child) => ({
+        id: child.id,
+        name: child.name,
+        usage: summarizeStoriesByWindow(stories.filter((s) => s.childId === child.id), now),
+      })),
+    };
+  });
+}
+
 function deleteTenant(tenant) {
   if (tenant === 'admin') {
     throw new Error('Nemožno zmazať admin účet.');
@@ -247,6 +289,7 @@ module.exports = {
   deleteChild,
   tenantExists,
   listTenants,
+  getUsageSummary,
   deleteTenant,
   resetTenantPin,
   migrateLegacyData,

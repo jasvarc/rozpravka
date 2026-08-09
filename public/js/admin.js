@@ -15,6 +15,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 const adminMsg = document.getElementById('adminMsg');
 const adminError = document.getElementById('adminError');
 const tenantList = document.getElementById('tenantList');
+const usageTableBody = document.getElementById('usageTableBody');
 
 const healthSummary = document.getElementById('healthSummary');
 const logsRefreshBtn = document.getElementById('logsRefreshBtn');
@@ -126,6 +127,52 @@ async function loadTenants() {
   });
 }
 
+const USAGE_WINDOW_KEYS = ['h24', 'd7', 'd28', 'd365'];
+
+function formatUsageCell(usage) {
+  return `${usage.count} (${usage.words})`;
+}
+
+function appendUsageRow(name, usage, isFamily) {
+  const row = document.createElement('tr');
+  row.className = isFamily ? 'usage-family' : 'usage-child';
+
+  const nameCell = document.createElement('td');
+  nameCell.textContent = name;
+  row.appendChild(nameCell);
+
+  USAGE_WINDOW_KEYS.forEach((key) => {
+    const cell = document.createElement('td');
+    cell.textContent = formatUsageCell(usage[key]);
+    row.appendChild(cell);
+  });
+
+  usageTableBody.appendChild(row);
+}
+
+async function loadUsage() {
+  const res = await fetch('api/admin/usage');
+  if (!res.ok) return;
+  const summaries = await res.json();
+  usageTableBody.innerHTML = '';
+
+  if (summaries.length === 0) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 5;
+    cell.className = 'subtitle';
+    cell.textContent = 'Zatiaľ žiadne rodiny.';
+    row.appendChild(cell);
+    usageTableBody.appendChild(row);
+    return;
+  }
+
+  summaries.forEach((entry) => {
+    appendUsageRow(entry.tenant, entry.family, true);
+    entry.children.forEach((child) => appendUsageRow(child.name, child.usage, false));
+  });
+}
+
 async function resetPin(name) {
   if (!confirm(`Naozaj chceš resetovať PIN pre "${name}"? Rodič si pri ďalšej návšteve nastaví nový PIN, ostatné nastavenia a história zostanú zachované.`)) return;
   const res = await fetch(`api/admin/tenants/${encodeURIComponent(name)}/reset-pin`, { method: 'POST' });
@@ -147,7 +194,7 @@ async function deleteTenant(name) {
     return;
   }
   showMsg(`"${name}" bol zmazaný.`);
-  await loadTenants();
+  await Promise.all([loadTenants(), loadUsage()]);
 }
 
 async function loadHealth() {
@@ -211,7 +258,7 @@ async function checkSession() {
     showOnly(loginSection);
   } else {
     showOnly(adminSection);
-    await Promise.all([loadTenants(), loadHealth(), loadLogs()]);
+    await Promise.all([loadTenants(), loadUsage(), loadHealth(), loadLogs()]);
     startLogsAutoRefresh();
   }
 }
@@ -265,7 +312,9 @@ loginBtn.addEventListener('click', async () => {
   await checkSession();
 });
 
-refreshBtn.addEventListener('click', loadTenants);
+refreshBtn.addEventListener('click', async () => {
+  await Promise.all([loadTenants(), loadUsage()]);
+});
 
 logsRefreshBtn.addEventListener('click', async () => {
   await Promise.all([loadHealth(), loadLogs()]);

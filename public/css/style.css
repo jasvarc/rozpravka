@@ -281,6 +281,44 @@ label {
   color: var(--danger);
 }
 
+.usage-table-wrap {
+  margin-top: 10px;
+  overflow-x: auto;
+}
+
+.usage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.usage-table th,
+.usage-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #3a3f6b;
+}
+
+.usage-table th {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.usage-table tr.usage-family td {
+  background: #171b38;
+  font-weight: 700;
+}
+
+.usage-table tr.usage-child td:first-child {
+  padding-left: 32px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
 .spinner {
   display: inline-block;
   width: 18px;
