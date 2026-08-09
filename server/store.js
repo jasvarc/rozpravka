@@ -5,6 +5,13 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const TENANTS_DIR = path.join(DATA_DIR, 'tenants');
 const LEGACY_SETTINGS_PATH = path.join(DATA_DIR, 'settings.json');
 const LEGACY_STORIES_PATH = path.join(DATA_DIR, 'stories.json');
+const APP_LIMITS_PATH = path.join(DATA_DIR, 'app-limits.json');
+
+const DEFAULT_APP_LIMITS = {
+  maxChildren: 5,
+  dailyStoryLimit: 3,
+  maxStoryLength: 1000,
+};
 
 const TENANT_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{1,29}$/;
 
@@ -69,6 +76,24 @@ function saveSettings(tenant, partial) {
   const current = getSettings(tenant);
   const updated = { ...current, ...partial };
   fs.writeFileSync(settingsPath(tenant), JSON.stringify(updated, null, 2));
+  return updated;
+}
+
+// Aplikacne limity (maximalny pocet deti, rozpravok/24h, slov na rozpravku) su spolocne pre
+// vsetky rodiny - na rozdiel od DEFAULT_SETTINGS nie su per-tenant, ziju v jedinom subore.
+function getAppLimits() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(APP_LIMITS_PATH)) {
+    fs.writeFileSync(APP_LIMITS_PATH, JSON.stringify(DEFAULT_APP_LIMITS, null, 2));
+  }
+  const raw = fs.readFileSync(APP_LIMITS_PATH, 'utf-8');
+  return { ...DEFAULT_APP_LIMITS, ...JSON.parse(raw) };
+}
+
+function saveAppLimits(partial) {
+  const current = getAppLimits();
+  const updated = { ...current, ...partial };
+  fs.writeFileSync(APP_LIMITS_PATH, JSON.stringify(updated, null, 2));
   return updated;
 }
 
@@ -276,6 +301,8 @@ module.exports = {
   isValidTenantName,
   getSettings,
   saveSettings,
+  getAppLimits,
+  saveAppLimits,
   getStories,
   addStory,
   getStory,

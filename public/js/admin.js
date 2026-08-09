@@ -17,6 +17,13 @@ const adminError = document.getElementById('adminError');
 const tenantList = document.getElementById('tenantList');
 const usageTableBody = document.getElementById('usageTableBody');
 
+const limitMaxChildrenInput = document.getElementById('limitMaxChildrenInput');
+const limitDailyStoriesInput = document.getElementById('limitDailyStoriesInput');
+const limitMaxWordsInput = document.getElementById('limitMaxWordsInput');
+const saveLimitsBtn = document.getElementById('saveLimitsBtn');
+const limitsMsg = document.getElementById('limitsMsg');
+const limitsError = document.getElementById('limitsError');
+
 const healthSummary = document.getElementById('healthSummary');
 const logsRefreshBtn = document.getElementById('logsRefreshBtn');
 const logsAutoRefreshInput = document.getElementById('logsAutoRefreshInput');
@@ -173,6 +180,40 @@ async function loadUsage() {
   });
 }
 
+async function loadLimits() {
+  const res = await fetch('api/admin/limits');
+  if (!res.ok) return;
+  const data = await res.json();
+  limitMaxChildrenInput.value = data.maxChildren;
+  limitDailyStoriesInput.value = data.dailyStoryLimit;
+  limitMaxWordsInput.value = data.maxStoryLength;
+}
+
+saveLimitsBtn.addEventListener('click', async () => {
+  limitsMsg.style.display = 'none';
+  limitsError.style.display = 'none';
+  const res = await fetch('api/admin/limits', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      maxChildren: Number(limitMaxChildrenInput.value),
+      dailyStoryLimit: Number(limitDailyStoriesInput.value),
+      maxStoryLength: Number(limitMaxWordsInput.value),
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    limitsError.textContent = data.error || 'Niečo sa pokazilo.';
+    limitsError.style.display = 'block';
+    return;
+  }
+  limitMaxChildrenInput.value = data.maxChildren;
+  limitDailyStoriesInput.value = data.dailyStoryLimit;
+  limitMaxWordsInput.value = data.maxStoryLength;
+  limitsMsg.textContent = 'Limity uložené.';
+  limitsMsg.style.display = 'block';
+});
+
 async function resetPin(name) {
   if (!confirm(`Naozaj chceš resetovať PIN pre "${name}"? Rodič si pri ďalšej návšteve nastaví nový PIN, ostatné nastavenia a história zostanú zachované.`)) return;
   const res = await fetch(`api/admin/tenants/${encodeURIComponent(name)}/reset-pin`, { method: 'POST' });
@@ -285,7 +326,7 @@ async function checkSession() {
     showOnly(loginSection);
   } else {
     showOnly(adminSection);
-    await Promise.all([loadTenants(), loadUsage(), loadHealth(), loadLogs()]);
+    await Promise.all([loadTenants(), loadLimits(), loadUsage(), loadHealth(), loadLogs()]);
     startLogsAutoRefresh();
     loadApiKeyValidity();
   }

@@ -35,9 +35,21 @@ const childIntensityLabel = document.getElementById('childIntensityLabel');
 const childSubmitBtn = document.getElementById('childSubmitBtn');
 const childCancelBtn = document.getElementById('childCancelBtn');
 const childFormError = document.getElementById('childFormError');
+const childrenLimitHint = document.getElementById('childrenLimitHint');
+const lengthLimitHint = document.getElementById('lengthLimitHint');
 
 let children = [];
 let editingChildId = null;
+let appLimits = { maxChildren: 5, dailyStoryLimit: 3, maxStoryLength: 1000 };
+
+async function loadAppLimits() {
+  const res = await fetch('api/settings/limits');
+  if (!res.ok) return;
+  appLimits = await res.json();
+  childrenLimitHint.textContent = tn('children_limit_hint', appLimits.maxChildren);
+  lengthLimitHint.textContent = tn('length_limit_hint', appLimits.maxStoryLength);
+  maxLengthInput.max = appLimits.maxStoryLength;
+}
 
 const TAG_LISTS = [
   { key: 'allowedTopics', list: document.getElementById('allowedList'), input: document.getElementById('allowedInput'), btn: document.getElementById('addAllowedBtn') },
@@ -471,6 +483,7 @@ async function checkSession() {
   } else {
     showOnly(settingsSection);
     resetChildForm();
+    await loadAppLimits();
     await loadSettings();
     await loadChildren();
     await loadHistory();
@@ -568,7 +581,7 @@ saveSettingsBtn.addEventListener('click', async () => {
   await loadHistory();
   if (data.maxLengthClamped) {
     maxLengthInput.value = data.maxLength;
-    settingsMsg.textContent = `${t('settings_saved_msg')} ${t('max_length_clamped_msg')}`;
+    settingsMsg.textContent = `${t('settings_saved_msg')} ${tn('max_length_clamped_msg', data.maxLength)}`;
   } else {
     settingsMsg.textContent = t('settings_saved_msg');
   }

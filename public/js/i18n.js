@@ -37,15 +37,15 @@ const TRANSLATIONS = {
     dieta_child_not_found: 'Toto dieťa sa nenašlo. Vyber si prosím znova.',
     dieta_report_btn: '😟 Nahlásiť rodičovi',
     dieta_report_done: '✅ Nahlásené',
-    dieta_daily_limit_hint: 'Za deň môžeš dostať najviac 3 rozprávky.',
+    dieta_daily_limit_hint: 'Za deň môžeš dostať najviac {n} rozprávky.',
 
     rodic_title: 'Rodičovské nastavenia',
     history_reported_badge: '😟 Nahlásené dieťaťom',
     history_reported_suggestions_label: 'Navrhované témy na zablokovanie:',
     history_resolve_report_btn: '✔️ Vybavené',
-    children_limit_hint: 'Rodina môže mať najviac 5 detí.',
-    length_limit_hint: 'Maximálna dĺžka rozprávky je 1000 slov.',
-    max_length_clamped_msg: 'Zadaná dĺžka presiahla limit 1000 slov, uložili sme hodnotu 1000.',
+    children_limit_hint: 'Rodina môže mať najviac {n} detí.',
+    length_limit_hint: 'Maximálna dĺžka rozprávky je {n} slov.',
+    max_length_clamped_msg: 'Zadaná dĺžka presiahla limit {n} slov, uložili sme hodnotu {n}.',
     children_label: 'Deti v rodine',
     children_empty: 'Zatiaľ žiadne deti. Pridaj prvé nižšie.',
     child_name_placeholder: 'Meno',
@@ -152,15 +152,15 @@ const TRANSLATIONS = {
     dieta_child_not_found: 'This child was not found. Please choose again.',
     dieta_report_btn: '😟 Tell my parent',
     dieta_report_done: '✅ Reported',
-    dieta_daily_limit_hint: 'You can get at most 3 stories per day.',
+    dieta_daily_limit_hint: 'You can get at most {n} stories per day.',
 
     rodic_title: 'Parent settings',
     history_reported_badge: '😟 Reported by child',
     history_reported_suggestions_label: 'Suggested topics to block:',
     history_resolve_report_btn: '✔️ Handled',
-    children_limit_hint: 'A family can have at most 5 children.',
-    length_limit_hint: 'The maximum story length is 1000 words.',
-    max_length_clamped_msg: 'The requested length was over the 1000-word limit, so we saved 1000 instead.',
+    children_limit_hint: 'A family can have at most {n} children.',
+    length_limit_hint: 'The maximum story length is {n} words.',
+    max_length_clamped_msg: 'The requested length was over the {n}-word limit, so we saved {n} instead.',
     children_label: 'Children in the family',
     children_empty: 'No children yet. Add the first one below.',
     child_name_placeholder: 'Name',
@@ -236,6 +236,11 @@ let currentLang = 'sk';
 function t(key) {
   const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.sk;
   return dict[key] || TRANSLATIONS.sk[key] || key;
+}
+
+// Ako t(), ale nahradi vsetky vyskyty "{n}" v preklade zadanou hodnotou (napr. cislo limitu).
+function tn(key, n) {
+  return t(key).replace(/\{n\}/g, n);
 }
 
 function getLocaleTag() {

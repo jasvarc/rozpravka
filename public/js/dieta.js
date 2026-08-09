@@ -13,6 +13,7 @@ const stopBtn = document.getElementById('stopBtn');
 const newStoryBtn = document.getElementById('newStoryBtn');
 const reportBtn = document.getElementById('reportBtn');
 const pastHistoryList = document.getElementById('pastHistoryList');
+const dailyLimitHint = document.getElementById('dailyLimitHint');
 
 const SOUND_SENTENCE_GAP = 2;
 
@@ -52,11 +53,19 @@ async function initChild() {
     childContent.style.display = 'block';
     promptInput.focus();
     loadPastHistory();
+    loadDailyLimitHint();
     fetch(`api/children/${childId}/enter`, { method: 'POST' }).catch(() => {});
   } catch (err) {
     console.error('Nepodarilo sa overiť dieťa:', err);
     childNotFoundBox.style.display = 'block';
   }
+}
+
+async function loadDailyLimitHint() {
+  const res = await fetch('api/settings/limits');
+  if (!res.ok) return;
+  const limits = await res.json();
+  dailyLimitHint.textContent = tn('dieta_daily_limit_hint', limits.dailyStoryLimit);
 }
 
 initChild();

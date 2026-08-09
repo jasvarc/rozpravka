@@ -1,12 +1,11 @@
 const express = require('express');
-const { getSettings, saveSettings, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild } = require('../store');
+const { getSettings, saveSettings, getAppLimits, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild } = require('../store');
 const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics } = require('../claude');
 const { t, dailyLimitMessage } = require('../i18n');
 const { logEvent } = require('../log-store');
 
 const router = express.Router({ mergeParams: true });
 
-const DAILY_STORY_LIMIT = 3;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function requireParentAuth(req, res, next) {
@@ -97,9 +96,10 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: t('childRequired', settings.language) });
     }
 
-    if (countStoriesInLast24h(tenant, child.id) >= DAILY_STORY_LIMIT) {
+    const { dailyStoryLimit } = getAppLimits();
+    if (countStoriesInLast24h(tenant, child.id) >= dailyStoryLimit) {
       return res.status(429).json({
-        error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language }),
+        error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language, limit: dailyStoryLimit }),
         limitReached: 'daily',
       });
     }
@@ -146,9 +146,10 @@ router.post('/continue', async (req, res) => {
       return res.status(404).json({ error: t('childNotFound', settings.language) });
     }
 
-    if (countStoriesInLast24h(tenant, child.id) >= DAILY_STORY_LIMIT) {
+    const { dailyStoryLimit } = getAppLimits();
+    if (countStoriesInLast24h(tenant, child.id) >= dailyStoryLimit) {
       return res.status(429).json({
-        error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language }),
+        error: dailyLimitMessage({ age: child.age, gender: child.gender, language: settings.language, limit: dailyStoryLimit }),
         limitReached: 'daily',
       });
     }

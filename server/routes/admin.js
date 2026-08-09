@@ -1,9 +1,15 @@
 const express = require('express');
-const { listTenants, deleteTenant, resetTenantPin, isValidTenantName, getUsageSummary } = require('../store');
+const { listTenants, deleteTenant, resetTenantPin, isValidTenantName, getUsageSummary, getAppLimits, saveAppLimits } = require('../store');
 const { getEntries, logEvent } = require('../log-store');
 const { checkApiKeyValidity } = require('../claude');
 
 const router = express.Router();
+
+function sanitizeLimitInt(value, fallback, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
 
 router.get('/tenants', (req, res) => {
   res.json(listTenants());
@@ -11,6 +17,23 @@ router.get('/tenants', (req, res) => {
 
 router.get('/usage', (req, res) => {
   res.json(getUsageSummary());
+});
+
+router.get('/limits', (req, res) => {
+  res.json(getAppLimits());
+});
+
+router.put('/limits', (req, res) => {
+  const current = getAppLimits();
+  const updated = saveAppLimits({
+    maxChildren: sanitizeLimitInt(req.body.maxChildren, current.maxChildren, 1, 20),
+    dailyStoryLimit: sanitizeLimitInt(req.body.dailyStoryLimit, current.dailyStoryLimit, 1, 50),
+    maxStoryLength: sanitizeLimitInt(req.body.maxStoryLength, current.maxStoryLength, 50, 5000),
+  });
+  logEvent(
+    `Administrátor zmenil aplikačné limity: max. detí = ${updated.maxChildren}, rozprávok/24h = ${updated.dailyStoryLimit}, max. slov = ${updated.maxStoryLength}.`
+  );
+  res.json(updated);
 });
 
 router.get('/health', (req, res) => {

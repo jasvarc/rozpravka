@@ -1,5 +1,5 @@
 const express = require('express');
-const { getSettings, saveSettings } = require('../store');
+const { getSettings, saveSettings, getAppLimits } = require('../store');
 const { t } = require('../i18n');
 
 const router = express.Router({ mergeParams: true });
@@ -24,8 +24,6 @@ function sanitizeMoralLesson(text) {
   if (typeof text !== 'string') return '';
   return text.trim().slice(0, 300);
 }
-
-const MAX_STORY_LENGTH = 1000;
 
 function sanitizeLength(value, fallback) {
   const n = Number(value);
@@ -52,6 +50,10 @@ router.get('/language', (req, res) => {
   res.json({ language: getSettings(req.params.tenant).language || 'sk' });
 });
 
+router.get('/limits', (req, res) => {
+  res.json(getAppLimits());
+});
+
 router.get('/', requireParentAuth, (req, res) => {
   const settings = getSettings(req.params.tenant);
   const { pinHash, ...safe } = settings;
@@ -75,12 +77,13 @@ router.put('/', requireParentAuth, (req, res) => {
     soundsEnabled,
   } = req.body;
   const current = getSettings(tenant);
+  const { maxStoryLength } = getAppLimits();
 
   const sanitizedMin = sanitizeLength(minLength, current.minLength);
   let sanitizedMax = sanitizeLength(maxLength, current.maxLength);
-  const maxLengthClamped = sanitizedMax > MAX_STORY_LENGTH;
+  const maxLengthClamped = sanitizedMax > maxStoryLength;
   if (maxLengthClamped) {
-    sanitizedMax = MAX_STORY_LENGTH;
+    sanitizedMax = maxStoryLength;
   }
   if (sanitizedMin > sanitizedMax) {
     return res.status(400).json({ error: t('lengthOrderError', current.language) });

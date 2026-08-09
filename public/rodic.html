@@ -35,7 +35,7 @@
 
       <div class="field">
         <label data-i18n="children_label">Deti v rodine</label>
-        <p class="subtitle" style="margin-top: 2px" data-i18n="children_limit_hint">Rodina môže mať najviac 5 detí.</p>
+        <p class="subtitle" id="childrenLimitHint" style="margin-top: 2px"></p>
         <div id="childrenList"></div>
         <form id="childForm" class="actions-row" style="flex-wrap: wrap">
           <input type="text" id="childNameInput" data-i18n-placeholder="child_name_placeholder" placeholder="Meno" style="flex: 2; min-width: 120px" />
@@ -86,11 +86,11 @@
       <div class="field">
         <label data-i18n="length_label">Požadovaná dĺžka rozprávky (počet slov)</label>
         <div class="actions-row">
-          <input type="number" id="minLengthInput" min="20" max="1000" step="10" style="width: 100px" />
+          <input type="number" id="minLengthInput" min="20" step="10" style="width: 100px" />
           <span data-i18n="length_between">od &ndash; do</span>
-          <input type="number" id="maxLengthInput" min="20" max="1000" step="10" style="width: 100px" />
+          <input type="number" id="maxLengthInput" min="20" step="10" style="width: 100px" />
         </div>
-        <p class="subtitle" style="margin-top: 6px" data-i18n="length_limit_hint">Maximálna dĺžka rozprávky je 1000 slov.</p>
+        <p class="subtitle" id="lengthLimitHint" style="margin-top: 6px"></p>
       </div>
 
       <div class="field">

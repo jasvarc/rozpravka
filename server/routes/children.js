@@ -1,11 +1,9 @@
 const express = require('express');
-const { getSettings, getChildren, getChild, addChild, updateChild, deleteChild } = require('../store');
-const { t } = require('../i18n');
+const { getSettings, getAppLimits, getChildren, getChild, addChild, updateChild, deleteChild } = require('../store');
+const { t, childrenLimitMessage } = require('../i18n');
 const { logEvent } = require('../log-store');
 
 const router = express.Router({ mergeParams: true });
-
-const MAX_CHILDREN = 5;
 
 function requireParentAuth(req, res, next) {
   const { tenant } = req.params;
@@ -52,8 +50,10 @@ router.post('/:id/enter', (req, res) => {
 
 router.post('/', requireParentAuth, (req, res) => {
   const { tenant } = req.params;
-  if (getChildren(tenant).length >= MAX_CHILDREN) {
-    return res.status(400).json({ error: t('childrenLimitReached', getSettings(tenant).language), limitReached: 'children' });
+  const settings = getSettings(tenant);
+  const { maxChildren } = getAppLimits();
+  if (getChildren(tenant).length >= maxChildren) {
+    return res.status(400).json({ error: childrenLimitMessage(maxChildren, settings.language), limitReached: 'children' });
   }
   const name = sanitizeName(req.body.name);
   const age = sanitizeAge(req.body.age);
