@@ -1,6 +1,6 @@
 const express = require('express');
 const { getSettings, saveSettings, getAppLimits, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild, resolveStoryLanguage } = require('../store');
-const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics, translateStoryToSlovak } = require('../claude');
+const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics, translateStoryToSlovak, TRANSLATION_VERSION } = require('../claude');
 const { t, dailyLimitMessage } = require('../i18n');
 const { logEvent } = require('../log-store');
 
@@ -247,7 +247,10 @@ router.post('/:id/translate', async (req, res) => {
     if (story.language !== 'en') {
       return res.status(400).json({ error: t('translationOnlyForEnglish', settings.language) });
     }
-    if (story.translation) {
+    // Ak bol preklad ulozeny starsou verziou algoritmu (viz TRANSLATION_VERSION v claude.js),
+    // ignorujeme ho a vygenerujeme znova - nema zmysel nutit rodicov/admina rucne mazat rozpravky
+    // po kazdej oprave suvisiaceho bugu v delení viet/odsekov.
+    if (story.translation && story.translation.version === TRANSLATION_VERSION) {
       return res.json({ translation: story.translation });
     }
     try {

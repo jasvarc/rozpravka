@@ -508,6 +508,11 @@ async function suggestBlockedTopics({ content, childPrompt, language }) {
   }
 }
 
+// Zvysuj pri kazdej zmene algoritmu delenia viet/chunkov (splitSentences, format promptu...) -
+// preklady ulozene so starsou verziou sa automaticky ignoruju a znovu vygeneruju (viz story.js),
+// namiesto aby ich niekto musel rucne mazat po oprave suvisiaceho bugu.
+const TRANSLATION_VERSION = 2;
+
 // Rozdeli text na "vety" tak, aby ich spojenim vzniklo presne povodne znenie (vratane medzier
 // a odstavcov) - potrebne pre presne mapovanie znakovych indexov medzi originalom a prekladom.
 function splitSentences(text) {
@@ -544,7 +549,7 @@ function splitCoreAndTrailingWs(rawSentence) {
 async function translateStoryToSlovak(content) {
   const rawSentences = splitSentences(content);
   const parts = rawSentences.map(splitCoreAndTrailingWs);
-  if (parts.length === 0) return { sentences: [] };
+  if (parts.length === 0) return { version: TRANSLATION_VERSION, sentences: [] };
 
   const numbered = parts.map((p, i) => `[${i}] ${p.core}`).join('\n');
 
@@ -622,6 +627,7 @@ async function translateStoryToSlovak(content) {
   });
 
   return {
+    version: TRANSLATION_VERSION,
     sentences: parts.map((p, i) => {
       const entry = byIndex.get(i);
       const sk = (entry && typeof entry.sk === 'string' && entry.sk.trim()) || p.core;
@@ -668,4 +674,4 @@ async function checkApiKeyValidity() {
   }
 }
 
-module.exports = { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics, translateStoryToSlovak, checkApiKeyValidity };
+module.exports = { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics, translateStoryToSlovak, checkApiKeyValidity, TRANSLATION_VERSION };

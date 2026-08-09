@@ -546,7 +546,9 @@ async function loadPastHistory() {
         language: s.language || snapshot.language,
         soundsEnabled: snapshot.soundsEnabled,
         soundCues: s.soundCues || [],
-        translation: s.translation || null,
+        // Preklad zamerne neposielame z historie priamo - moze byt ulozeny starsou verziou
+        // algoritmu (viz TRANSLATION_VERSION v server/claude.js). Tlacidlo "Simultánny preklad"
+        // si ho pri kliknuti vyziada nanovo cez server, ktory platnost verzie sam overi.
       });
       fetch(`api/story/${s.id}/replay`, { method: 'POST' }).catch(() => {});
     });
