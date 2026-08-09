@@ -20,6 +20,7 @@ const newStoryBtn = document.getElementById('newStoryBtn');
 const reportBtn = document.getElementById('reportBtn');
 const pastHistoryList = document.getElementById('pastHistoryList');
 const dailyLimitHint = document.getElementById('dailyLimitHint');
+const wordTranslationBubble = document.getElementById('wordTranslationBubble');
 
 const SOUND_SENTENCE_GAP = 2;
 
@@ -41,6 +42,11 @@ let translationState = null; // { sentences: [{ startChar, endChar, el, chunks: 
 let highlightedTranslationEl = null;
 let translationVisible = false;
 let currentTranslationCache = null;
+let wordBubbleRequestId = 0;
+let wordBubbleHideTimer = null;
+
+const WORD_BUBBLE_MAX_CHARS = 60;
+const WORD_BUBBLE_AUTOHIDE_MS = 4000;
 
 async function initChild() {
   await initLanguage();
@@ -158,10 +164,11 @@ function renderStoryText(text) {
     span.dataset.start = startIndex;
     span.dataset.sentence = sentenceIndex;
     // Klik na slovo ho zvyrazni (a ak je zobrazeny preklad, zvyrazni aj jeho pripadny SK
-    // pendant vpravo) - funguje nezavisle od toho, ci prave bezi citanie nahlas. "startIndex" je
+    // pendant vpravo, inak sa - pre anglicku rozpravku - ukaze mala bublina s prekladom len
+    // tohto slova) - funguje nezavisle od toho, ci prave bezi citanie nahlas. "startIndex" je
     // zamerne lokalna konstanta (nie "match.index" priamo) - "match" sa v cykle prepisuje, takze
     // by v uzavere po skonceni cyklu ukazoval na null.
-    span.addEventListener('click', () => highlightAtCharIndex(startIndex));
+    span.addEventListener('click', () => handleWordClick(span, startIndex));
     paragraph.appendChild(span);
     wordSpans.push(span);
     lastIndex = match.index + match[0].length;
@@ -327,6 +334,104 @@ function highlightTranslationAtCharIndex(charIndex) {
   }
 }
 
+// Zabezpeci, ze data prekladu su nacitane a ulozene v currentTranslationCache - ak uz su, nic
+// nerobi (ziadne dalsie volanie na Anthropic). Pouziva ho ako tlacidlo "Simultánny preklad", tak
+// aj bublina s prekladom jedneho slova - obe zdielaju TU ISTU (raz vygenerovanu a natrvalo
+// ulozenu k rozprávke) sadu dat, takze pridanie bubliny nezvysuje spotrebu API.
+async function ensureTranslationLoaded() {
+  if (currentTranslationCache) return currentTranslationCache;
+  const res = await fetch(`api/story/${currentStoryId}/translate`, { method: 'POST' });
+  const data = await parseJsonResponse(res);
+  if (!res.ok) throw new Error(data.error || t('error_generic'));
+  currentTranslationCache = data.translation;
+  return currentTranslationCache;
+}
+
+// Najde preklad zodpovedajuci danemu znakovemu indexu v ORIGINALNOM texte, bez potreby renderovat
+// dvojstlpcove zobrazenie - pouziva sa pre bublinu s prekladom jedneho slova. Vracia text chunku
+// (zvycajne jedno slovo/kratka fraza), alebo ak pre danu vetu nie je zarovnanie k dispozicii,
+// text celej vety (volny preklad).
+function lookupTranslationTextAtChar(translation, charIndex) {
+  if (!translation || !Array.isArray(translation.sentences)) return null;
+  let cursor = 0;
+  for (const s of translation.sentences) {
+    const en = s.en || '';
+    const trailingWs = s.trailingWs || '';
+    const startChar = cursor;
+    const endChar = startChar + en.length;
+    cursor = endChar + trailingWs.length;
+    if (charIndex < startChar || charIndex >= endChar) continue;
+
+    if (s.chunks && s.chunks.length > 0) {
+      let localCursor = 0;
+      for (const c of s.chunks) {
+        const chunkStart = startChar + localCursor;
+        localCursor += (c.en || '').length;
+        const chunkEnd = startChar + localCursor;
+        if (charIndex >= chunkStart && charIndex < chunkEnd) return c.sk;
+      }
+      return s.chunks[s.chunks.length - 1].sk;
+    }
+    return s.sk || s.en;
+  }
+  return null;
+}
+
+// Skrati text zobrazovany v malej bublinke, aby zostala kompaktna aj pri volnom (celovetnom)
+// preklade - orezanie sa robi na hranici slova, nie uprostred.
+function truncateForBubble(text) {
+  if (!text || text.length <= WORD_BUBBLE_MAX_CHARS) return text;
+  return `${text.slice(0, WORD_BUBBLE_MAX_CHARS).replace(/\s+\S*$/, '')}…`;
+}
+
+function hideWordBubble() {
+  clearTimeout(wordBubbleHideTimer);
+  wordBubbleHideTimer = null;
+  wordTranslationBubble.style.display = 'none';
+}
+
+function showWordBubble(anchorEl, text) {
+  wordTranslationBubble.textContent = text;
+  wordTranslationBubble.style.display = 'block';
+
+  const anchorRect = anchorEl.getBoundingClientRect();
+  const bubbleRect = wordTranslationBubble.getBoundingClientRect();
+  let left = anchorRect.left + anchorRect.width / 2 - bubbleRect.width / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - bubbleRect.width - 8));
+  let top = anchorRect.top - bubbleRect.height - 8;
+  if (top < 8) top = anchorRect.bottom + 8;
+  wordTranslationBubble.style.left = `${left}px`;
+  wordTranslationBubble.style.top = `${top}px`;
+
+  clearTimeout(wordBubbleHideTimer);
+  wordBubbleHideTimer = setTimeout(hideWordBubble, WORD_BUBBLE_AUTOHIDE_MS);
+}
+
+// Klik na anglicke slovo mimo simultanneho (dvojstlpcoveho) zobrazenia - namiesto prepnutia na
+// cely preklad ukaze malu bublinu s prekladom LEN tohto slova/frazy. Preklad rozpravky sa vyziada
+// (a natrvalo ulozi) nanajvys raz za rozpravku - dalsie kliky uz len citaju z pamate, bez
+// akehokolvek dalsieho volania na Anthropic.
+async function handleWordClick(span, startIndex) {
+  highlightAtCharIndex(startIndex);
+  if (translationVisible || currentStoryLang !== 'en') return;
+
+  const requestId = (wordBubbleRequestId += 1);
+  showWordBubble(span, '…');
+  try {
+    const translation = await ensureTranslationLoaded();
+    if (requestId !== wordBubbleRequestId) return; // medzitym uz prislo dalsie klikni
+    const text = lookupTranslationTextAtChar(translation, startIndex);
+    showWordBubble(span, truncateForBubble(text) || t('error_generic'));
+  } catch (err) {
+    if (requestId !== wordBubbleRequestId) return;
+    showWordBubble(span, t('error_generic'));
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.story-word')) hideWordBubble();
+});
+
 function resetReportButton(reported) {
   reportBtn.disabled = !currentStoryId || reported;
   reportBtn.textContent = reported ? t('dieta_report_done') : t('dieta_report_btn');
@@ -372,6 +477,8 @@ function applyStoryResponse(data) {
   translateBtn.disabled = false;
   translateBtn.textContent = t('dieta_translate_btn');
   translateBtn.style.display = currentStoryLang === 'en' ? 'inline-block' : 'none';
+  wordBubbleRequestId += 1; // zrusi akukolvek prave prebiehajucu bublinu z predoslej rozpravky
+  hideWordBubble();
 
   storyBox.style.display = 'block';
   storyBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -666,6 +773,8 @@ async function toggleTranslation() {
     return;
   }
 
+  hideWordBubble(); // dvojstlpcove zobrazenie uz preklad ukazuje vsade, bublina by bola redundantna
+
   if (translationState) {
     storyTranslationColumn.style.display = 'block';
     storyColumnLabelEn.style.display = 'block';
@@ -679,14 +788,7 @@ async function toggleTranslation() {
   translateBtn.disabled = true;
   translateBtn.innerHTML = `<span class="spinner"></span>${t('dieta_translating')}`;
   try {
-    let translation = currentTranslationCache;
-    if (!translation) {
-      const res = await fetch(`api/story/${currentStoryId}/translate`, { method: 'POST' });
-      const data = await parseJsonResponse(res);
-      if (!res.ok) throw new Error(data.error || t('error_generic'));
-      translation = data.translation;
-      currentTranslationCache = translation;
-    }
+    const translation = await ensureTranslationLoaded();
     storyTranslationColumn.style.display = 'block';
     storyColumnLabelEn.style.display = 'block';
     renderTranslation(translation);
@@ -710,6 +812,7 @@ reportBtn.addEventListener('click', reportCurrentStory);
 newStoryBtn.addEventListener('click', () => {
   window.speechSynthesis.cancel();
   resetHighlight();
+  hideWordBubble();
   storyBox.style.display = 'none';
   promptInput.value = '';
   promptInput.focus();
