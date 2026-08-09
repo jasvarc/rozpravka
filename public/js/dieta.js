@@ -128,8 +128,11 @@ promptInput.addEventListener('keydown', (e) => {
 
 // Diktovanie temy hlasom namiesto pisania - rozpoznany text sa len vlozi do textboxu (nahradi
 // jeho obsah), dieta ho pred odoslanim moze este rucne upravit alebo rovno odoslat Enterom.
+// Rozpoznavanie reci (na rozdiel od napr. citania nahlas cez speechSynthesis) vyzaduje
+// "secure context" - https:// alebo localhost. Na http:// prehliadac vobec nepozada o povolenie
+// mikrofonu a rovno vrati chybu, preto tlacidlo v takom pripade radsej vobec nezobrazime.
 const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognitionCtor) {
+if (SpeechRecognitionCtor && window.isSecureContext) {
   const recognition = new SpeechRecognitionCtor();
   recognition.continuous = false;
   recognition.interimResults = false;
@@ -154,7 +157,13 @@ if (SpeechRecognitionCtor) {
   };
 
   recognition.onerror = (event) => {
-    if (event.error !== 'aborted' && event.error !== 'no-speech') {
+    // "event.error" nikdy nezobrazujeme dietatu priamo (nie je prelozeny a nie je zrozumitelny),
+    // ale zalogujeme ho pre pripad diagnostiky (napr. cez vzdialeny support).
+    console.error('Rozpoznávanie reči zlyhalo:', event.error);
+    if (event.error === 'aborted' || event.error === 'no-speech') return;
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      showError(t('dieta_error_voice_permission'));
+    } else {
       showError(t('dieta_error_voice_input'));
     }
   };
@@ -174,6 +183,9 @@ if (SpeechRecognitionCtor) {
   });
 } else {
   voiceInputBtn.style.display = 'none';
+  if (SpeechRecognitionCtor && !window.isSecureContext) {
+    console.warn('Rozpoznávanie reči je dostupné len cez HTTPS (alebo localhost) - appka teraz beží na nezabezpečenom pripojení, preto je tlačidlo skryté.');
+  }
 }
 
 function showError(msg) {
