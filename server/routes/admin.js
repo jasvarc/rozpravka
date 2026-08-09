@@ -1,6 +1,7 @@
 const express = require('express');
 const { listTenants, deleteTenant, resetTenantPin, isValidTenantName, getUsageSummary } = require('../store');
 const { getEntries, logEvent } = require('../log-store');
+const { checkApiKeyValidity } = require('../claude');
 
 const router = express.Router();
 
@@ -22,6 +23,11 @@ router.get('/health', (req, res) => {
 
 router.get('/logs', (req, res) => {
   res.json(getEntries(300));
+});
+
+router.get('/api-key-check', async (req, res) => {
+  const result = await checkApiKeyValidity();
+  res.json(result);
 });
 
 router.delete('/tenants/:name', (req, res) => {

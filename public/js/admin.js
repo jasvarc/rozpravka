@@ -197,12 +197,36 @@ async function deleteTenant(name) {
   await Promise.all([loadTenants(), loadUsage()]);
 }
 
+let apiKeyStatus = null;
+
+function formatApiKeyStatus(data) {
+  if (!data.apiKeyConfigured) return '❌ NENASTAVENÝ';
+  if (!apiKeyStatus) return '✅ nastavený (overuje sa platnosť…)';
+  if (apiKeyStatus.valid === true) {
+    return apiKeyStatus.reason === 'rate_limited' ? '✅ platný (momentálne rate-limited/bez kreditu)' : '✅ platný';
+  }
+  if (apiKeyStatus.valid === false) {
+    return '❌ NEPLATNÝ (Anthropic ho odmietol)';
+  }
+  return '⚠️ nastavený, platnosť sa nepodarilo overiť';
+}
+
 async function loadHealth() {
   const res = await fetch('api/admin/health');
   if (!res.ok) return;
   const data = await res.json();
-  const apiKeyPart = data.apiKeyConfigured ? '✅ nastavený' : '❌ NENASTAVENÝ';
+  const apiKeyPart = formatApiKeyStatus(data);
   healthSummary.textContent = `API kľúč: ${apiKeyPart} · Beží: ${formatUptime(data.uptimeSeconds)} · Node: ${data.nodeVersion}`;
+}
+
+// Skutocna platnost API kluca sa da overit iba realnym (velmi malym) requestom na Anthropic -
+// preto sa to spusta len raz pri nacitani stranky, nie pri kazdom automatickom obnoveni logu.
+async function loadApiKeyValidity() {
+  const res = await fetch('api/admin/api-key-check');
+  if (res.ok) {
+    apiKeyStatus = await res.json();
+  }
+  await loadHealth();
 }
 
 function renderLogEntry(entry) {
@@ -263,6 +287,7 @@ async function checkSession() {
     showOnly(adminSection);
     await Promise.all([loadTenants(), loadUsage(), loadHealth(), loadLogs()]);
     startLogsAutoRefresh();
+    loadApiKeyValidity();
   }
 }
 

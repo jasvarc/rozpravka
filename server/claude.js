@@ -508,4 +508,34 @@ async function suggestBlockedTopics({ content, childPrompt, language }) {
   }
 }
 
-module.exports = { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics };
+// Anthropic API nezverejnuje endpoint na zistenie platnosti/expiracie kluca, takze jedinym
+// sposobom overenia je skutocny (velmi maly) request - "ping" spravou s max_tokens:1.
+async function checkApiKeyValidity() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return { checked: false, valid: false, reason: 'missing' };
+  }
+  try {
+    await client.messages.create(
+      {
+        model: 'claude-sonnet-5',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'ping' }],
+      },
+      { timeout: 10_000 }
+    );
+    return { checked: true, valid: true };
+  } catch (err) {
+    const status = err && err.status;
+    if (status === 401) {
+      return { checked: true, valid: false, reason: 'unauthorized' };
+    }
+    if (status === 429) {
+      // Kluc bol prijaty (autentifikacia prebehla), len je momentalne rate-limited/bez kreditu.
+      return { checked: true, valid: true, reason: 'rate_limited' };
+    }
+    console.error('Chyba pri overovani platnosti API kľúča:', err);
+    return { checked: true, valid: null, reason: 'unknown' };
+  }
+}
+
+module.exports = { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics, checkApiKeyValidity };
