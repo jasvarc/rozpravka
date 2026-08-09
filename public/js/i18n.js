@@ -10,6 +10,8 @@ const TRANSLATIONS = {
     index_child_link_prefix: '🧸 Som',
     index_parent_link: '🔒 Som rodič',
     index_no_children: 'Rodič ešte nevytvoril žiadne dieťa. Rodič musí v rodičovskom portáli vytvoriť aspoň jedno dieťa, aby sa tu objavilo.',
+    family_not_enabled_msg: 'Administrátor ešte nepovolil alebo dočasne zablokoval toto meno. Rozprávky budú dostupné, keď ho povolí.',
+    family_not_enabled_parent_hint: 'Toto meno ešte nie je povolené administrátorom. Nastavenia si môžeš pokojne pripraviť, ale deti zatiaľ nemôžu generovať rozprávky.',
 
     dieta_title: 'Rozprávka pre teba',
     dieta_heading: '🧸 O čom má byť dnešná rozprávka?',
@@ -125,6 +127,8 @@ const TRANSLATIONS = {
     index_child_link_prefix: "🧸 I'm",
     index_parent_link: "🔒 I'm a parent",
     index_no_children: 'The parent hasn\'t created any children yet. A parent needs to create at least one child in the parent portal for it to show up here.',
+    family_not_enabled_msg: "The administrator hasn't enabled this name yet, or has temporarily blocked it. Stories will be available once it's enabled.",
+    family_not_enabled_parent_hint: "This name isn't enabled by the administrator yet. Feel free to set things up, but children can't generate stories yet.",
 
     dieta_title: 'A story for you',
     dieta_heading: "🧸 What should tonight's story be about?",

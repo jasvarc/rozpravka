@@ -30,6 +30,10 @@ const DEFAULT_SETTINGS = {
   language: 'sk',
   soundsEnabled: false,
   createdAt: null,
+  // Existujuce (uz vytvorene) rodiny musia po tejto zmene ostat povolene - preto je merge-fallback
+  // pre chybajuce pole "enabled" v starych settings.json suboroch "true". Nove rodiny dostavaju
+  // "enabled: false" explicitne pri prvom vytvoreni v ensureTenantFiles nizsie.
+  enabled: true,
 };
 
 function isValidTenantName(name) {
@@ -56,7 +60,9 @@ function ensureTenantFiles(tenant) {
   const dir = tenantDir(tenant);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   if (!fs.existsSync(settingsPath(tenant))) {
-    fs.writeFileSync(settingsPath(tenant), JSON.stringify(DEFAULT_SETTINGS, null, 2));
+    // Novo vytvorena rodina (zadanim doteraz neexistujuceho mena) zacina ako "enabled: false" -
+    // admin ju musi v portali najprv povolit, kym deti mozu generovat rozpravky.
+    fs.writeFileSync(settingsPath(tenant), JSON.stringify({ ...DEFAULT_SETTINGS, enabled: false }, null, 2));
   }
   if (!fs.existsSync(storiesPath(tenant))) {
     fs.writeFileSync(storiesPath(tenant), JSON.stringify([], null, 2));
@@ -209,6 +215,7 @@ function listTenants() {
       return {
         name,
         hasPin: !!settings.pinHash,
+        enabled: settings.enabled !== false,
         language: settings.language || 'sk',
         storyCount: stories.length,
         createdAt: settings.createdAt || null,
@@ -274,6 +281,10 @@ function resetTenantPin(tenant) {
   return saveSettings(tenant, { pinHash: null });
 }
 
+function setTenantEnabled(tenant, enabled) {
+  return saveSettings(tenant, { enabled: !!enabled });
+}
+
 function migrateLegacyData(tenant) {
   if (!isValidTenantName(tenant)) {
     throw new Error('Neplatný názov pre migráciu.');
@@ -319,5 +330,6 @@ module.exports = {
   getUsageSummary,
   deleteTenant,
   resetTenantPin,
+  setTenantEnabled,
   migrateLegacyData,
 };

@@ -37,10 +37,23 @@ const childCancelBtn = document.getElementById('childCancelBtn');
 const childFormError = document.getElementById('childFormError');
 const childrenLimitHint = document.getElementById('childrenLimitHint');
 const lengthLimitHint = document.getElementById('lengthLimitHint');
+const familyNotEnabledBanner = document.getElementById('familyNotEnabledBanner');
 
 let children = [];
 let editingChildId = null;
 let appLimits = { maxChildren: 5, dailyStoryLimit: 3, maxStoryLength: 1000 };
+
+async function loadFamilyStatus() {
+  const res = await fetch('api/settings/status');
+  if (!res.ok) return;
+  const data = await res.json();
+  if (data.enabled === false) {
+    familyNotEnabledBanner.textContent = t('family_not_enabled_parent_hint');
+    familyNotEnabledBanner.style.display = 'block';
+  } else {
+    familyNotEnabledBanner.style.display = 'none';
+  }
+}
 
 async function loadAppLimits() {
   const res = await fetch('api/settings/limits');
@@ -483,6 +496,7 @@ async function checkSession() {
   } else {
     showOnly(settingsSection);
     resetChildForm();
+    await loadFamilyStatus();
     await loadAppLimits();
     await loadSettings();
     await loadChildren();

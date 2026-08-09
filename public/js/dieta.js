@@ -1,4 +1,5 @@
 const childNotFoundBox = document.getElementById('childNotFoundBox');
+const familyBlockedBox = document.getElementById('familyBlockedBox');
 const childContent = document.getElementById('childContent');
 const childGreeting = document.getElementById('childGreeting');
 const promptInput = document.getElementById('promptInput');
@@ -42,6 +43,14 @@ async function initChild() {
   }
 
   try {
+    const statusRes = await fetch('api/settings/status');
+    const status = statusRes.ok ? await statusRes.json() : { enabled: true };
+    if (status.enabled === false) {
+      familyBlockedBox.textContent = t('family_not_enabled_msg');
+      familyBlockedBox.style.display = 'block';
+      return;
+    }
+
     const res = await fetch('api/children');
     const list = res.ok ? await res.json() : [];
     const child = list.find((c) => c.id === childId);

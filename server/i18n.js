@@ -14,6 +14,7 @@ const MESSAGES = {
     childRequired: 'Vyber, pre ktoré dieťa má byť rozprávka.',
     unknownApiPath: 'Neznáma API cesta.',
     unexpectedError: 'Nastala neočakávaná chyba na serveri.',
+    familyNotEnabled: 'Administrátor ešte nepovolil alebo dočasne zablokoval toto meno. Rozprávky nie sú momentálne dostupné.',
   },
   en: {
     authRequired: 'Parent login required.',
@@ -30,6 +31,7 @@ const MESSAGES = {
     childRequired: 'Choose which child the story is for.',
     unknownApiPath: 'Unknown API path.',
     unexpectedError: 'An unexpected server error occurred.',
+    familyNotEnabled: "The administrator hasn't enabled this name yet, or has temporarily blocked it. Stories aren't available right now.",
   },
 };
 

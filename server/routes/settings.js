@@ -54,6 +54,10 @@ router.get('/limits', (req, res) => {
   res.json(getAppLimits());
 });
 
+router.get('/status', (req, res) => {
+  res.json({ enabled: getSettings(req.params.tenant).enabled !== false });
+});
+
 router.get('/', requireParentAuth, (req, res) => {
   const settings = getSettings(req.params.tenant);
   const { pinHash, ...safe } = settings;

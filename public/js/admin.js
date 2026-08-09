@@ -109,10 +109,16 @@ async function loadTenants() {
 
     const meta = document.createElement('div');
     meta.className = 'meta';
-    meta.textContent = `jazyk: ${tenant.language} · rozprávok: ${tenant.storyCount} · vytvorené: ${formatDate(tenant.createdAt)} · posledná rozprávka: ${formatDate(tenant.lastStoryAt)} · PIN: ${tenant.hasPin ? 'nastavený' : 'nenastavený'}`;
+    const statusLabel = tenant.enabled ? '✅ povolené' : '🚫 zablokované';
+    meta.textContent = `jazyk: ${tenant.language} · rozprávok: ${tenant.storyCount} · vytvorené: ${formatDate(tenant.createdAt)} · posledná rozprávka: ${formatDate(tenant.lastStoryAt)} · PIN: ${tenant.hasPin ? 'nastavený' : 'nenastavený'} · stav: ${statusLabel}`;
 
     const actions = document.createElement('div');
     actions.className = 'actions-row';
+
+    const toggleEnabledBtn = document.createElement('button');
+    toggleEnabledBtn.className = tenant.enabled ? 'danger' : 'secondary';
+    toggleEnabledBtn.textContent = tenant.enabled ? '🚫 Zablokovať' : '✅ Povoliť';
+    toggleEnabledBtn.addEventListener('click', () => toggleTenantEnabled(tenant.name, !tenant.enabled));
 
     const resetBtn = document.createElement('button');
     resetBtn.className = 'secondary';
@@ -124,6 +130,7 @@ async function loadTenants() {
     deleteBtn.textContent = '🗑️ Zmazať';
     deleteBtn.addEventListener('click', () => deleteTenant(tenant.name));
 
+    actions.appendChild(toggleEnabledBtn);
     actions.appendChild(resetBtn);
     actions.appendChild(deleteBtn);
 
@@ -213,6 +220,17 @@ saveLimitsBtn.addEventListener('click', async () => {
   limitsMsg.textContent = 'Limity uložené.';
   limitsMsg.style.display = 'block';
 });
+
+async function toggleTenantEnabled(name, enable) {
+  const res = await fetch(`api/admin/tenants/${encodeURIComponent(name)}/${enable ? 'enable' : 'disable'}`, { method: 'POST' });
+  const data = await res.json();
+  if (!res.ok) {
+    showErr(data.error || 'Niečo sa pokazilo.');
+    return;
+  }
+  showMsg(enable ? `"${name}" bol povolený.` : `"${name}" bol zablokovaný.`);
+  await loadTenants();
+}
 
 async function resetPin(name) {
   if (!confirm(`Naozaj chceš resetovať PIN pre "${name}"? Rodič si pri ďalšej návšteve nastaví nový PIN, ostatné nastavenia a história zostanú zachované.`)) return;

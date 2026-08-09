@@ -90,6 +90,10 @@ router.post('/', async (req, res) => {
   try {
     const settings = getSettings(tenant);
 
+    if (settings.enabled === false) {
+      return res.status(403).json({ error: t('familyNotEnabled', settings.language) });
+    }
+
     const { prompt, childId, surprise } = req.body;
     const child = typeof childId === 'string' ? getChild(tenant, childId) : null;
     if (!child) {
@@ -134,6 +138,9 @@ router.post('/continue', async (req, res) => {
   const { tenant } = req.params;
   try {
     const settings = getSettings(tenant);
+    if (settings.enabled === false) {
+      return res.status(403).json({ error: t('familyNotEnabled', settings.language) });
+    }
 
     const { previousStoryId } = req.body;
     const characterNote = sanitizeCharacterNote(req.body.characterNote);
