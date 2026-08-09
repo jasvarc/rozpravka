@@ -26,6 +26,14 @@ const wordTranslationBubble = document.getElementById('wordTranslationBubble');
 // (zvuk sa moze spustit hned v dalsej vete, nie skor).
 const SOUND_SENTENCE_GAP = 1;
 
+// Niektore mobilne prehliadace (typicky Android Chrome) nespolahlivo posielaju udalost
+// "onboundary" pocas citania nahlas - bez nej sa nezvyraznuje text ani nespustaju zvukove
+// efekty. ESTIMATED_WPM_AT_RATE_1 je priblizny pocet slov za minutu pri rychlosti citania 1.0,
+// pouzity na odhad polohy citania, ak sa realne udalosti nezacnu objavovat vcas.
+const ESTIMATED_WPM_AT_RATE_1 = 150;
+const ESTIMATED_HIGHLIGHT_START_DELAY = 450;
+const ESTIMATED_HIGHLIGHT_TICK_MS = 90;
+
 const childId = new URLSearchParams(window.location.search).get('child');
 
 let utterance = null;
@@ -40,6 +48,10 @@ let wordSpans = [];
 let wordCursor = 0;
 let highlightedSpan = null;
 let lastSoundSentence = -Infinity;
+let boundaryEventFired = false;
+let estimatedReadStartTime = 0;
+let estimatedHighlightStartDelay = null;
+let estimatedHighlightTimer = null;
 let translationState = null; // { sentences: [{ startChar, endChar, el, chunks: [{startChar,endChar,el}] | null }] }
 let highlightedTranslationEl = null;
 let translationVisible = false;
@@ -555,6 +567,44 @@ async function generateSurpriseStory() {
   }
 }
 
+// Odhaduje polohu citania podla uplynuteho casu a rychlosti (namiesto skutocnych "onboundary"
+// udalosti prehliadaca), a rovnako ako skutocna udalost zvyraznuje slovo aj spusta pripadny
+// zvukovy efekt. Beží iba pokial sa realne "onboundary" udalosti vobec nezacnu objavovat.
+function estimatedHighlightTick() {
+  if (boundaryEventFired) {
+    stopEstimatedHighlight();
+    return;
+  }
+  const elapsedSec = (performance.now() - estimatedReadStartTime) / 1000;
+  const wordsPerSecond = (ESTIMATED_WPM_AT_RATE_1 * (currentVoiceRate || 1)) / 60;
+  const idx = Math.min(wordSpans.length - 1, Math.floor(elapsedSec * wordsPerSecond));
+  const target = wordSpans[idx];
+  if (!target) return;
+  highlightAtCharIndex(Number(target.dataset.start));
+  maybeTriggerSound(target);
+}
+
+function startEstimatedHighlight() {
+  stopEstimatedHighlight();
+  boundaryEventFired = false;
+  estimatedReadStartTime = performance.now();
+  // Kratke oneskorenie predtym, nez zacneme s odhadom - ak prehliadac skutocne posiela udalosti
+  // "onboundary" (bezny pripad na desktope), medzitym uz nastavia boundaryEventFired a odhadovany
+  // ticker sa vobec nespusti. Ak nie (niektore mobilne prehliadace, typicky Android Chrome, ich
+  // nespolahlivo posielaju), odhadovany ticker prevezme zvyraznovanie aj spustanie zvukov.
+  estimatedHighlightStartDelay = setTimeout(() => {
+    if (boundaryEventFired) return;
+    estimatedHighlightTimer = setInterval(estimatedHighlightTick, ESTIMATED_HIGHLIGHT_TICK_MS);
+  }, ESTIMATED_HIGHLIGHT_START_DELAY);
+}
+
+function stopEstimatedHighlight() {
+  clearTimeout(estimatedHighlightStartDelay);
+  clearInterval(estimatedHighlightTimer);
+  estimatedHighlightStartDelay = null;
+  estimatedHighlightTimer = null;
+}
+
 function readAloud() {
   if (!('speechSynthesis' in window)) {
     showError(t('dieta_error_no_tts'));
@@ -579,6 +629,7 @@ function readAloud() {
   if (chosenVoice) utterance.voice = chosenVoice;
 
   utterance.onboundary = (event) => {
+    boundaryEventFired = true;
     highlightAtCharIndex(event.charIndex);
     maybeTriggerSound(wordSpans[wordCursor]);
   };
@@ -587,9 +638,11 @@ function readAloud() {
     readBtn.style.display = 'inline-block';
     stopBtn.style.display = 'none';
     resetHighlight();
+    stopEstimatedHighlight();
   };
 
   window.speechSynthesis.speak(utterance);
+  startEstimatedHighlight();
   readBtn.style.display = 'none';
   stopBtn.style.display = 'inline-block';
 }
@@ -599,6 +652,7 @@ function stopReading() {
   readBtn.style.display = 'inline-block';
   stopBtn.style.display = 'none';
   resetHighlight();
+  stopEstimatedHighlight();
 }
 
 function formatHistoryDate(iso) {
