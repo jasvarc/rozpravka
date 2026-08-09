@@ -43,6 +43,11 @@ function sanitizeVoiceName(text) {
   return text.trim().slice(0, 200);
 }
 
+function sanitizeMoralLesson(text) {
+  if (typeof text !== 'string') return '';
+  return text.trim().slice(0, 300);
+}
+
 router.get('/', (req, res) => {
   res.json(getChildren(req.params.tenant));
 });
@@ -70,10 +75,11 @@ router.post('/', requireParentAuth, (req, res) => {
   const intensity = sanitizeIntensity(req.body.intensity);
   const language = sanitizeChildLanguage(req.body.language);
   const voiceName = sanitizeVoiceName(req.body.voiceName);
+  const moralLessonNext = sanitizeMoralLesson(req.body.moralLessonNext);
   if (!name || age === null || !gender) {
     return res.status(400).json({ error: t('childInvalid', getSettings(tenant).language) });
   }
-  const child = addChild(tenant, { name, age, gender, intensity, language, voiceName });
+  const child = addChild(tenant, { name, age, gender, intensity, language, voiceName, moralLessonNext });
   res.json(child);
 });
 
@@ -85,10 +91,11 @@ router.put('/:id', requireParentAuth, (req, res) => {
   const intensity = sanitizeIntensity(req.body.intensity);
   const language = sanitizeChildLanguage(req.body.language);
   const voiceName = sanitizeVoiceName(req.body.voiceName);
+  const moralLessonNext = sanitizeMoralLesson(req.body.moralLessonNext);
   if (!name || age === null || !gender) {
     return res.status(400).json({ error: t('childInvalid', getSettings(tenant).language) });
   }
-  const updated = updateChild(tenant, id, { name, age, gender, intensity, language, voiceName });
+  const updated = updateChild(tenant, id, { name, age, gender, intensity, language, voiceName, moralLessonNext });
   if (!updated) {
     return res.status(404).json({ error: t('childNotFound', getSettings(tenant).language) });
   }

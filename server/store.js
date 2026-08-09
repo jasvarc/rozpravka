@@ -19,7 +19,6 @@ const DEFAULT_SETTINGS = {
   pinHash: null,
   allowedTopics: [],
   blockedTopics: [],
-  moralLessonNext: '',
   minLength: 250,
   maxLength: 400,
   // Hlas na citanie sa vybera len per-dieta (viz addChild nizsie) - rodinne nastavenie ma zmysel
@@ -167,7 +166,7 @@ function getChild(tenant, id) {
   return getChildren(tenant).find((c) => c.id === id) || null;
 }
 
-function addChild(tenant, { name, age, gender, intensity, language, voiceName }) {
+function addChild(tenant, { name, age, gender, intensity, language, voiceName, moralLessonNext }) {
   const children = getChildren(tenant);
   const record = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
@@ -179,6 +178,10 @@ function addChild(tenant, { name, age, gender, intensity, language, voiceName })
     // 'sk'/'en' je explicitne prebitie len pre toto dieta - viz resolveStoryLanguage nizsie.
     language: language === 'en' || language === 'sk' ? language : '',
     voiceName: typeof voiceName === 'string' ? voiceName : '',
+    // Jednorazove mravne ponaucenie specificke pre toto dieta - po vygenerovani najblizsej
+    // rozpravky tohto dietata, ktora ho pouzije, sa automaticky vyprazdni (viz runGeneration v
+    // routes/story.js).
+    moralLessonNext: typeof moralLessonNext === 'string' ? moralLessonNext : '',
     createdAt: new Date().toISOString(),
   };
   children.push(record);

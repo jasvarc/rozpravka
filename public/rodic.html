@@ -69,6 +69,11 @@
             <select id="childVoiceInput" style="width: 100%"></select>
             <button type="button" id="testChildVoiceBtn" class="secondary" style="margin-top: 8px" data-i18n="test_voice_btn">🔊 Vyskúšať hlas</button>
           </div>
+          <div style="flex-basis: 100%; margin-top: 8px">
+            <label for="childMoralLessonInput" style="font-size: 0.85rem; color: var(--text-dim)" data-i18n="moral_lesson_label">Mravné ponaučenie pre nasledujúcu rozprávku tohto dieťaťa (nechaj prázdne, ak žiadne nechceš)</label>
+            <textarea id="childMoralLessonInput" rows="2" maxlength="300" style="width: 100%" data-i18n-placeholder="moral_lesson_placeholder" placeholder="napr. je dôležité deliť sa s kamarátmi"></textarea>
+            <p class="subtitle" style="margin-top: 4px; margin-bottom: 0" data-i18n="moral_lesson_hint">Po vygenerovaní najbližšej rozprávky tohto dieťaťa sa toto pole samo vyprázdni.</p>
+          </div>
           <button type="submit" id="childSubmitBtn" class="secondary" data-i18n="child_add_btn">➕ Pridať dieťa</button>
           <button type="button" id="childCancelBtn" class="secondary" data-i18n="child_cancel_btn" style="display: none">Zrušiť</button>
         </form>
@@ -91,11 +96,6 @@
           <input type="text" id="blockedInput" data-i18n-placeholder="blocked_topics_placeholder" placeholder="napr. strašidlá, vojna" style="flex: 1" />
           <button id="addBlockedBtn" class="secondary" data-i18n="add_btn">Pridať</button>
         </div>
-      </div>
-
-      <div class="field">
-        <label for="moralLessonInput" data-i18n="moral_lesson_label">Mravné ponaučenie pre nasledujúcu rozprávku (nechaj prázdne, ak žiadne nechceš)</label>
-        <textarea id="moralLessonInput" rows="2" maxlength="300" data-i18n-placeholder="moral_lesson_placeholder" placeholder="napr. je dôležité deliť sa s kamarátmi"></textarea>
       </div>
 
       <div class="field">

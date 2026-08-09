@@ -10,7 +10,6 @@ const loginPinInput = document.getElementById('loginPinInput');
 const loginBtn = document.getElementById('loginBtn');
 const loginError = document.getElementById('loginError');
 
-const moralLessonInput = document.getElementById('moralLessonInput');
 const minLengthInput = document.getElementById('minLengthInput');
 const maxLengthInput = document.getElementById('maxLengthInput');
 const languageSelect = document.getElementById('languageSelect');
@@ -32,6 +31,7 @@ const childIntensityInput = document.getElementById('childIntensityInput');
 const childIntensityLabel = document.getElementById('childIntensityLabel');
 const childLanguageInput = document.getElementById('childLanguageInput');
 const childVoiceInput = document.getElementById('childVoiceInput');
+const childMoralLessonInput = document.getElementById('childMoralLessonInput');
 const testChildVoiceBtn = document.getElementById('testChildVoiceBtn');
 const childSubmitBtn = document.getElementById('childSubmitBtn');
 const childCancelBtn = document.getElementById('childCancelBtn');
@@ -217,6 +217,7 @@ function resetChildForm() {
   childIntensityInput.value = 50;
   childIntensityLabel.textContent = intensityLabel(50);
   childLanguageInput.value = '';
+  childMoralLessonInput.value = '';
   pendingVoiceName = '';
   populateVoiceSelect();
   childSubmitBtn.textContent = t('child_add_btn');
@@ -240,7 +241,8 @@ function renderChildren() {
     const meta = document.createElement('strong');
     const genderLabel = child.gender === 'boy' ? t('child_gender_boy') : t('child_gender_girl');
     const childLangLabel = child.language === 'en' ? t('language_option_en') : child.language === 'sk' ? t('language_option_sk') : t('child_language_family_label');
-    meta.textContent = `${child.name} · ${child.age} ${t('child_age_years_suffix')} · ${genderLabel} · ${intensityLabel(child.intensity)} · ${childLangLabel}`;
+    const moralLessonSuffix = child.moralLessonNext ? ` · ${t('child_moral_lesson_pending')}` : '';
+    meta.textContent = `${child.name} · ${child.age} ${t('child_age_years_suffix')} · ${genderLabel} · ${intensityLabel(child.intensity)} · ${childLangLabel}${moralLessonSuffix}`;
 
     const actions = document.createElement('div');
     actions.className = 'actions-row';
@@ -278,6 +280,7 @@ function startEditChild(child) {
   childIntensityInput.value = typeof child.intensity === 'number' ? child.intensity : 50;
   childIntensityLabel.textContent = intensityLabel(childIntensityInput.value);
   childLanguageInput.value = child.language === 'en' || child.language === 'sk' ? child.language : '';
+  childMoralLessonInput.value = child.moralLessonNext || '';
   pendingVoiceName = child.voiceName || '';
   populateVoiceSelect();
   childSubmitBtn.textContent = t('child_save_btn');
@@ -314,7 +317,7 @@ childForm.addEventListener('submit', async (e) => {
   const res = await fetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, age, gender, intensity, language: childLanguageInput.value, voiceName: childVoiceInput.value }),
+    body: JSON.stringify({ name, age, gender, intensity, language: childLanguageInput.value, voiceName: childVoiceInput.value, moralLessonNext: childMoralLessonInput.value }),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -339,7 +342,6 @@ async function loadSettings() {
   state.girlNames = data.girlNames || [];
   state.boyNames = data.boyNames || [];
   state.adultNames = data.adultNames || [];
-  moralLessonInput.value = data.moralLessonNext || '';
   minLengthInput.value = data.minLength || 250;
   maxLengthInput.value = data.maxLength || 400;
   languageSelect.value = data.language === 'en' ? 'en' : 'sk';
@@ -577,7 +579,6 @@ saveSettingsBtn.addEventListener('click', async () => {
     body: JSON.stringify({
       allowedTopics: state.allowedTopics,
       blockedTopics: state.blockedTopics,
-      moralLessonNext: moralLessonInput.value,
       minLength,
       maxLength,
       voiceRate: Number(voiceRateInput.value) || 1,

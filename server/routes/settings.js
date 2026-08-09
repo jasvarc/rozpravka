@@ -20,11 +20,6 @@ function sanitizeTopicList(list) {
     .slice(0, 50);
 }
 
-function sanitizeMoralLesson(text) {
-  if (typeof text !== 'string') return '';
-  return text.trim().slice(0, 300);
-}
-
 function sanitizeLength(value, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
@@ -64,7 +59,6 @@ router.put('/', requireParentAuth, (req, res) => {
   const {
     allowedTopics,
     blockedTopics,
-    moralLessonNext,
     minLength,
     maxLength,
     voiceRate,
@@ -90,7 +84,6 @@ router.put('/', requireParentAuth, (req, res) => {
   const updated = saveSettings(tenant, {
     allowedTopics: sanitizeTopicList(allowedTopics),
     blockedTopics: sanitizeTopicList(blockedTopics),
-    moralLessonNext: sanitizeMoralLesson(moralLessonNext),
     minLength: sanitizedMin,
     maxLength: sanitizedMax,
     voiceRate: sanitizeRate(voiceRate, current.voiceRate),

@@ -1,5 +1,5 @@
 const express = require('express');
-const { getSettings, saveSettings, getAppLimits, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild, resolveStoryLanguage } = require('../store');
+const { getSettings, saveSettings, getAppLimits, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild, updateChild, resolveStoryLanguage } = require('../store');
 const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics, translateStoryToSlovak, TRANSLATION_VERSION } = require('../claude');
 const { t, dailyLimitMessage } = require('../i18n');
 const { logEvent } = require('../log-store');
@@ -31,7 +31,7 @@ function countStoriesInLast24h(tenant, childId) {
 }
 
 async function runGeneration(tenant, settings, child, { childPrompt, previousContent, characterNote, continuesFrom, historyTitle }) {
-  const moralLesson = (settings.moralLessonNext || '').trim();
+  const moralLesson = (child.moralLessonNext || '').trim();
   const storyLanguage = resolveStoryLanguage(child, settings);
 
   const content = await generateStory({
@@ -54,7 +54,7 @@ async function runGeneration(tenant, settings, child, { childPrompt, previousCon
   });
 
   if (moralLesson) {
-    saveSettings(tenant, { moralLessonNext: '' });
+    updateChild(tenant, child.id, { moralLessonNext: '' });
   }
 
   const record = addStory(tenant, {
