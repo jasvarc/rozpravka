@@ -11,6 +11,7 @@ const childrenRoutes = require('./routes/children');
 const adminRoutes = require('./routes/admin');
 const { isValidTenantName } = require('./store');
 const { t } = require('./i18n');
+const { addEntry: addLogEntry } = require('./log-store');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,10 +22,31 @@ if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('VAROVANIE: ANTHROPIC_API_KEY nie je nastavený v .env - generovanie rozprávok zlyhá.');
 }
 
+// Kazdy console.error volany kdekolvek v aplikacii (route handlery, catch bloky...) sa okrem
+// konzoly zapise aj do log-store, aby ho admin videl v diagnostike bez pristupu k serveru.
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  originalConsoleError(...args);
+  addLogEntry({ level: 'error', message: args.map(String).join(' ') });
+};
+
+const NON_TENANT_PREFIXES = new Set(['css', 'js', 'api']);
+
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
-    console.log(`${req.method} ${req.originalUrl} -> ${res.statusCode} (${Date.now() - start}ms)`);
+    const durationMs = Date.now() - start;
+    console.log(`${req.method} ${req.originalUrl} -> ${res.statusCode} (${durationMs}ms)`);
+    const firstSegment = req.originalUrl.split('/').filter(Boolean)[0];
+    const tenant = firstSegment && !NON_TENANT_PREFIXES.has(firstSegment) ? firstSegment : null;
+    addLogEntry({
+      level: 'request',
+      method: req.method,
+      path: req.originalUrl,
+      tenant,
+      statusCode: res.statusCode,
+      durationMs,
+    });
   });
   next();
 });

@@ -41,6 +41,19 @@
       <div id="adminError" class="error" style="display: none"></div>
 
       <div id="tenantList" class="story-history"></div>
+
+      <div class="story-history">
+        <h2>🩺 Diagnostika</h2>
+        <p id="healthSummary" class="subtitle"></p>
+        <div class="actions-row">
+          <button id="logsRefreshBtn" class="secondary">🔄 Obnoviť log</button>
+          <label class="checkbox-row" style="display: inline-flex; margin-left: 4px">
+            <input type="checkbox" id="logsAutoRefreshInput" checked />
+            <span style="font-size: 0.85rem; color: var(--text-dim)">Automaticky obnovovať</span>
+          </label>
+        </div>
+        <div id="logViewer" class="log-viewer"></div>
+      </div>
     </section>
   </div>
 

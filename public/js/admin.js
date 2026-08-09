@@ -16,9 +16,17 @@ const adminMsg = document.getElementById('adminMsg');
 const adminError = document.getElementById('adminError');
 const tenantList = document.getElementById('tenantList');
 
+const healthSummary = document.getElementById('healthSummary');
+const logsRefreshBtn = document.getElementById('logsRefreshBtn');
+const logsAutoRefreshInput = document.getElementById('logsAutoRefreshInput');
+const logViewer = document.getElementById('logViewer');
+
+let logsInterval = null;
+
 // Ked admin odide zo stranky (spat, zatvorenie karty, novy URL), zabudnime jeho prihlasenie,
 // aby pri navrate opat muselo zadat PIN.
 window.addEventListener('pagehide', () => {
+  stopLogsAutoRefresh();
   navigator.sendBeacon('api/parent/logout');
 });
 
@@ -42,6 +50,20 @@ function showOnly(section) {
 function formatDate(iso) {
   if (!iso) return '-';
   return new Date(iso).toLocaleString('sk-SK');
+}
+
+function formatTime(iso) {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleString('sk-SK', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatUptime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
 }
 
 function showMsg(text) {
@@ -128,7 +150,61 @@ async function deleteTenant(name) {
   await loadTenants();
 }
 
+async function loadHealth() {
+  const res = await fetch('api/admin/health');
+  if (!res.ok) return;
+  const data = await res.json();
+  const apiKeyPart = data.apiKeyConfigured ? '✅ nastavený' : '❌ NENASTAVENÝ';
+  healthSummary.textContent = `API kľúč: ${apiKeyPart} · Beží: ${formatUptime(data.uptimeSeconds)} · Node: ${data.nodeVersion}`;
+}
+
+function renderLogEntry(entry) {
+  const line = document.createElement('div');
+  const time = formatTime(entry.timestamp);
+  if (entry.level === 'error') {
+    line.className = 'log-line log-error';
+    line.textContent = `[${time}] CHYBA: ${entry.message}`;
+  } else {
+    const isErrorStatus = entry.statusCode >= 400;
+    line.className = isErrorStatus ? 'log-line log-error' : 'log-line';
+    const tenantPart = entry.tenant ? `[${entry.tenant}] ` : '';
+    line.textContent = `[${time}] ${tenantPart}${entry.method} ${entry.path} -> ${entry.statusCode} (${entry.durationMs}ms)`;
+  }
+  return line;
+}
+
+async function loadLogs() {
+  const res = await fetch('api/admin/logs');
+  if (!res.ok) return;
+  const entries = await res.json();
+  const wasScrolledToTop = logViewer.scrollTop === 0;
+  logViewer.innerHTML = '';
+  if (entries.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'subtitle';
+    empty.textContent = 'Zatiaľ žiadny záznam.';
+    logViewer.appendChild(empty);
+    return;
+  }
+  entries.forEach((entry) => logViewer.appendChild(renderLogEntry(entry)));
+  if (wasScrolledToTop) logViewer.scrollTop = 0;
+}
+
+function startLogsAutoRefresh() {
+  stopLogsAutoRefresh();
+  if (!logsAutoRefreshInput.checked) return;
+  logsInterval = setInterval(loadLogs, 5000);
+}
+
+function stopLogsAutoRefresh() {
+  if (logsInterval) {
+    clearInterval(logsInterval);
+    logsInterval = null;
+  }
+}
+
 async function checkSession() {
+  stopLogsAutoRefresh();
   const res = await fetch('api/parent/session');
   const data = await res.json();
   if (!data.hasPin) {
@@ -137,7 +213,8 @@ async function checkSession() {
     showOnly(loginSection);
   } else {
     showOnly(adminSection);
-    await loadTenants();
+    await Promise.all([loadTenants(), loadHealth(), loadLogs()]);
+    startLogsAutoRefresh();
   }
 }
 
@@ -191,6 +268,18 @@ loginBtn.addEventListener('click', async () => {
 });
 
 refreshBtn.addEventListener('click', loadTenants);
+
+logsRefreshBtn.addEventListener('click', async () => {
+  await Promise.all([loadHealth(), loadLogs()]);
+});
+
+logsAutoRefreshInput.addEventListener('change', () => {
+  if (logsAutoRefreshInput.checked) {
+    startLogsAutoRefresh();
+  } else {
+    stopLogsAutoRefresh();
+  }
+});
 
 logoutBtn.addEventListener('click', async () => {
   await fetch('api/parent/logout', { method: 'POST' });
