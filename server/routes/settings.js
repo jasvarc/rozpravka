@@ -31,11 +31,6 @@ function sanitizeLength(value, fallback) {
   return Math.min(5000, Math.max(20, Math.round(n)));
 }
 
-function sanitizeVoiceName(text) {
-  if (typeof text !== 'string') return '';
-  return text.trim().slice(0, 200);
-}
-
 function sanitizeRate(value, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
@@ -72,7 +67,6 @@ router.put('/', requireParentAuth, (req, res) => {
     moralLessonNext,
     minLength,
     maxLength,
-    voiceName,
     voiceRate,
     girlNames,
     boyNames,
@@ -99,7 +93,6 @@ router.put('/', requireParentAuth, (req, res) => {
     moralLessonNext: sanitizeMoralLesson(moralLessonNext),
     minLength: sanitizedMin,
     maxLength: sanitizedMax,
-    voiceName: sanitizeVoiceName(voiceName),
     voiceRate: sanitizeRate(voiceRate, current.voiceRate),
     girlNames: sanitizeTopicList(girlNames),
     boyNames: sanitizeTopicList(boyNames),

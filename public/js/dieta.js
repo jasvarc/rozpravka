@@ -291,8 +291,11 @@ function readAloud() {
   utterance.pitch = 1.05;
 
   const voices = window.speechSynthesis.getVoices();
+  // Ulozeny hlas dietata pouzijeme len ak jeho jazyk skutocne sedi s jazykom TEJTO konkretnej
+  // rozpravky - inak by sa napr. anglicky hlas mohol pouzit na precitanie slovenskej rozpravky
+  // (dieta mohlo medzitym zmenit svoj jazyk, alebo ide o starsiu rozpravku v inom jazyku).
   const chosenVoice =
-    (currentVoiceName && voices.find((v) => v.name === currentVoiceName)) ||
+    (currentVoiceName && voices.find((v) => v.name === currentVoiceName && v.lang && v.lang.toLowerCase().startsWith(currentStoryLang))) ||
     voices.find((v) => v.lang && v.lang.toLowerCase().startsWith(currentStoryLang));
   if (chosenVoice) utterance.voice = chosenVoice;
 
@@ -370,7 +373,7 @@ async function loadPastHistory() {
         content: s.content,
         voiceName: snapshot.voiceName,
         voiceRate: snapshot.voiceRate,
-        language: snapshot.language,
+        language: s.language || snapshot.language,
         soundsEnabled: snapshot.soundsEnabled,
         soundCues: s.soundCues || [],
       });

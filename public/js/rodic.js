@@ -14,10 +14,8 @@ const moralLessonInput = document.getElementById('moralLessonInput');
 const minLengthInput = document.getElementById('minLengthInput');
 const maxLengthInput = document.getElementById('maxLengthInput');
 const languageSelect = document.getElementById('languageSelect');
-const voiceSelect = document.getElementById('voiceSelect');
 const voiceRateInput = document.getElementById('voiceRateInput');
 const voiceRateLabel = document.getElementById('voiceRateLabel');
-const testVoiceBtn = document.getElementById('testVoiceBtn');
 const soundsEnabledInput = document.getElementById('soundsEnabledInput');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 const logoutBtn = document.getElementById('logoutBtn');
@@ -32,6 +30,9 @@ const childAgeInput = document.getElementById('childAgeInput');
 const childGenderInput = document.getElementById('childGenderInput');
 const childIntensityInput = document.getElementById('childIntensityInput');
 const childIntensityLabel = document.getElementById('childIntensityLabel');
+const childLanguageInput = document.getElementById('childLanguageInput');
+const childVoiceInput = document.getElementById('childVoiceInput');
+const testChildVoiceBtn = document.getElementById('testChildVoiceBtn');
 const childSubmitBtn = document.getElementById('childSubmitBtn');
 const childCancelBtn = document.getElementById('childCancelBtn');
 const childFormError = document.getElementById('childFormError');
@@ -149,23 +150,23 @@ TAG_LISTS.forEach(({ key, input, btn }) => {
 function populateVoiceSelect() {
   if (!('speechSynthesis' in window)) return;
   availableVoices = window.speechSynthesis.getVoices();
-  const previousValue = voiceSelect.value || pendingVoiceName;
-  voiceSelect.innerHTML = '';
+  const previousValue = childVoiceInput.value || pendingVoiceName;
+  childVoiceInput.innerHTML = '';
 
   const defaultOption = document.createElement('option');
   defaultOption.value = '';
   defaultOption.textContent = t('voice_default_option');
-  voiceSelect.appendChild(defaultOption);
+  childVoiceInput.appendChild(defaultOption);
 
   availableVoices.forEach((v) => {
     const opt = document.createElement('option');
     opt.value = v.name;
     opt.textContent = `${v.name} (${v.lang})`;
-    voiceSelect.appendChild(opt);
+    childVoiceInput.appendChild(opt);
   });
 
   if (previousValue) {
-    voiceSelect.value = previousValue;
+    childVoiceInput.value = previousValue;
   }
 }
 
@@ -178,15 +179,15 @@ voiceRateInput.addEventListener('input', () => {
   voiceRateLabel.textContent = Number(voiceRateInput.value).toFixed(2);
 });
 
-testVoiceBtn.addEventListener('click', () => {
+testChildVoiceBtn.addEventListener('click', () => {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
-  const previewLang = languageSelect.value === 'en' ? 'en' : 'sk';
+  const previewLang = (childLanguageInput.value || languageSelect.value) === 'en' ? 'en' : 'sk';
   const utterance = new SpeechSynthesisUtterance(TEST_VOICE_SAMPLES[previewLang]);
   utterance.lang = previewLang === 'en' ? 'en-US' : 'sk-SK';
   utterance.rate = Number(voiceRateInput.value) || 1;
   utterance.pitch = 1.05;
-  const chosen = availableVoices.find((v) => v.name === voiceSelect.value);
+  const chosen = availableVoices.find((v) => v.name === childVoiceInput.value);
   if (chosen) utterance.voice = chosen;
   window.speechSynthesis.speak(utterance);
 });
@@ -215,6 +216,9 @@ function resetChildForm() {
   childGenderInput.value = 'girl';
   childIntensityInput.value = 50;
   childIntensityLabel.textContent = intensityLabel(50);
+  childLanguageInput.value = '';
+  pendingVoiceName = '';
+  populateVoiceSelect();
   childSubmitBtn.textContent = t('child_add_btn');
   childCancelBtn.style.display = 'none';
   childFormError.style.display = 'none';
@@ -235,7 +239,8 @@ function renderChildren() {
 
     const meta = document.createElement('strong');
     const genderLabel = child.gender === 'boy' ? t('child_gender_boy') : t('child_gender_girl');
-    meta.textContent = `${child.name} · ${child.age} ${t('child_age_years_suffix')} · ${genderLabel} · ${intensityLabel(child.intensity)}`;
+    const childLangLabel = child.language === 'en' ? t('language_option_en') : child.language === 'sk' ? t('language_option_sk') : t('child_language_family_label');
+    meta.textContent = `${child.name} · ${child.age} ${t('child_age_years_suffix')} · ${genderLabel} · ${intensityLabel(child.intensity)} · ${childLangLabel}`;
 
     const actions = document.createElement('div');
     actions.className = 'actions-row';
@@ -272,6 +277,9 @@ function startEditChild(child) {
   childGenderInput.value = child.gender === 'boy' ? 'boy' : 'girl';
   childIntensityInput.value = typeof child.intensity === 'number' ? child.intensity : 50;
   childIntensityLabel.textContent = intensityLabel(childIntensityInput.value);
+  childLanguageInput.value = child.language === 'en' || child.language === 'sk' ? child.language : '';
+  pendingVoiceName = child.voiceName || '';
+  populateVoiceSelect();
   childSubmitBtn.textContent = t('child_save_btn');
   childCancelBtn.style.display = 'inline-block';
   childFormError.style.display = 'none';
@@ -306,7 +314,7 @@ childForm.addEventListener('submit', async (e) => {
   const res = await fetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, age, gender, intensity }),
+    body: JSON.stringify({ name, age, gender, intensity, language: childLanguageInput.value, voiceName: childVoiceInput.value }),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -336,10 +344,8 @@ async function loadSettings() {
   maxLengthInput.value = data.maxLength || 400;
   languageSelect.value = data.language === 'en' ? 'en' : 'sk';
   soundsEnabledInput.checked = !!data.soundsEnabled;
-  pendingVoiceName = data.voiceName || '';
   voiceRateInput.value = data.voiceRate || 1;
   voiceRateLabel.textContent = Number(voiceRateInput.value).toFixed(2);
-  populateVoiceSelect();
   renderTagLists();
 }
 
@@ -574,7 +580,6 @@ saveSettingsBtn.addEventListener('click', async () => {
       moralLessonNext: moralLessonInput.value,
       minLength,
       maxLength,
-      voiceName: voiceSelect.value,
       voiceRate: Number(voiceRateInput.value) || 1,
       girlNames: state.girlNames,
       boyNames: state.boyNames,
@@ -591,7 +596,6 @@ saveSettingsBtn.addEventListener('click', async () => {
   }
   await initLanguage();
   document.title = t('rodic_title');
-  populateVoiceSelect();
   await loadHistory();
   if (data.maxLengthClamped) {
     maxLengthInput.value = data.maxLength;

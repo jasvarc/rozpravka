@@ -1,5 +1,5 @@
 const express = require('express');
-const { getSettings, saveSettings, getAppLimits, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild } = require('../store');
+const { getSettings, saveSettings, getAppLimits, getStories, addStory, getStory, updateStory, deleteStory, getRecentAndFavoriteStories, getChild, resolveStoryLanguage } = require('../store');
 const { generateStory, extractSoundCues, pickSurpriseTopic, suggestBlockedTopics } = require('../claude');
 const { t, dailyLimitMessage } = require('../i18n');
 const { logEvent } = require('../log-store');
@@ -32,6 +32,7 @@ function countStoriesInLast24h(tenant, childId) {
 
 async function runGeneration(tenant, settings, child, { childPrompt, previousContent, characterNote, continuesFrom, historyTitle }) {
   const moralLesson = (settings.moralLessonNext || '').trim();
+  const storyLanguage = resolveStoryLanguage(child, settings);
 
   const content = await generateStory({
     childPrompt,
@@ -43,7 +44,7 @@ async function runGeneration(tenant, settings, child, { childPrompt, previousCon
     girlNames: settings.girlNames,
     boyNames: settings.boyNames,
     adultNames: settings.adultNames,
-    language: settings.language,
+    language: storyLanguage,
     previousContent,
     characterNote,
     childName: child.name,
@@ -63,9 +64,10 @@ async function runGeneration(tenant, settings, child, { childPrompt, previousCon
     moralLesson: moralLesson || null,
     content,
     continuesFrom: continuesFrom || null,
+    language: storyLanguage,
   });
 
-  const soundCues = settings.soundsEnabled ? await extractSoundCues({ content, language: settings.language }) : [];
+  const soundCues = settings.soundsEnabled ? await extractSoundCues({ content, language: storyLanguage }) : [];
 
   if (soundCues.length > 0) {
     updateStory(tenant, record.id, { soundCues });
@@ -77,9 +79,9 @@ async function runGeneration(tenant, settings, child, { childPrompt, previousCon
     content,
     id: record.id,
     createdAt: record.createdAt,
-    voiceName: settings.voiceName || '',
+    voiceName: child.voiceName || '',
     voiceRate: settings.voiceRate || 1,
-    language: settings.language || 'sk',
+    language: storyLanguage,
     soundsEnabled: !!settings.soundsEnabled,
     soundCues,
   };
@@ -108,10 +110,11 @@ router.post('/', async (req, res) => {
       });
     }
 
+    const storyLanguage = resolveStoryLanguage(child, settings);
     let childPrompt;
     let historyTitle;
     if (surprise) {
-      childPrompt = pickSurpriseTopic({ allowedTopics: settings.allowedTopics, age: child.age, language: settings.language });
+      childPrompt = pickSurpriseTopic({ allowedTopics: settings.allowedTopics, age: child.age, language: storyLanguage });
       historyTitle = `🎁 ${childPrompt}`.slice(0, 300);
     } else {
       if (typeof prompt !== 'string' || !prompt.trim()) {
@@ -191,9 +194,9 @@ router.get('/recent', (req, res, next) => {
       return res.status(400).json({ error: t('childRequired', settings.language) });
     }
     res.json({
-      voiceName: settings.voiceName || '',
+      voiceName: child.voiceName || '',
       voiceRate: settings.voiceRate || 1,
-      language: settings.language || 'sk',
+      language: resolveStoryLanguage(child, settings),
       soundsEnabled: !!settings.soundsEnabled,
       stories: getRecentAndFavoriteStories(tenant, childId, 5),
     });
@@ -214,7 +217,7 @@ router.post('/:id/report', async (req, res) => {
     const suggestedBlockedTopics = await suggestBlockedTopics({
       content: story.content,
       childPrompt: stripHistoryPrefix(story.childPrompt),
-      language: settings.language,
+      language: story.language || settings.language,
     });
 
     updateStory(tenant, id, {

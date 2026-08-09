@@ -55,6 +55,20 @@
               <span data-i18n="child_intensity_adventurous">🚀 Dobrodružnejšia</span>
             </div>
           </div>
+          <div style="flex-basis: 100%; margin-top: 4px">
+            <label for="childLanguageInput" style="font-size: 0.85rem; color: var(--text-dim)" data-i18n="child_language_label">Jazyk rozprávok a čítania</label>
+            <select id="childLanguageInput" style="width: 100%">
+              <option value="" data-i18n="child_language_inherit_option">🔄 Rovnaký ako rodina</option>
+              <option value="sk" data-i18n="language_option_sk">Slovenčina</option>
+              <option value="en" data-i18n="language_option_en">English</option>
+            </select>
+            <p class="subtitle" style="margin-top: 4px; margin-bottom: 0" data-i18n="child_language_hint">Určuje, v akom jazyku sa tomuto dieťaťu generujú a čítajú rozprávky. Zvyšok appky zostáva v jazyku rodiny.</p>
+          </div>
+          <div style="flex-basis: 100%; margin-top: 8px">
+            <label for="childVoiceInput" style="font-size: 0.85rem; color: var(--text-dim)" data-i18n="voice_select_label">Hlas na čítanie rozprávky</label>
+            <select id="childVoiceInput" style="width: 100%"></select>
+            <button type="button" id="testChildVoiceBtn" class="secondary" style="margin-top: 8px" data-i18n="test_voice_btn">🔊 Vyskúšať hlas</button>
+          </div>
           <button type="submit" id="childSubmitBtn" class="secondary" data-i18n="child_add_btn">➕ Pridať dieťa</button>
           <button type="button" id="childCancelBtn" class="secondary" data-i18n="child_cancel_btn" style="display: none">Zrušiť</button>
         </form>
@@ -127,19 +141,12 @@
           <option value="sk" data-i18n="language_option_sk">Slovenčina</option>
           <option value="en" data-i18n="language_option_en">English</option>
         </select>
-        <p class="subtitle" style="margin-top: 6px" data-i18n="language_hint">Po uložení sa do tohto jazyka prepne celá appka, vygenerované rozprávky aj predvolený hlas na čítanie.</p>
-      </div>
-
-      <div class="field">
-        <label for="voiceSelect" data-i18n="voice_select_label">Hlas na čítanie rozprávky</label>
-        <select id="voiceSelect" style="width: 100%"></select>
-        <p class="subtitle" style="margin-top: 6px" data-i18n="voice_select_hint">Dostupné hlasy závisia od prehliadača, v ktorom dieťa rozprávku počúva - ak vybraný hlas tam nebude k dispozícii, použije sa náhradný.</p>
+        <p class="subtitle" style="margin-top: 6px" data-i18n="language_hint">Po uložení sa do tohto jazyka prepne celá appka (texty, tlačidlá, hlásenia). Jazyk rozprávok si nastavíš zvlášť pre každé dieťa nižšie.</p>
       </div>
 
       <div class="field">
         <label for="voiceRateInput"><span data-i18n="rate_label_prefix">Rýchlosť čítania:</span> <span id="voiceRateLabel">1.0</span>×</label>
         <input type="range" id="voiceRateInput" min="0.5" max="1.5" step="0.05" style="width: 100%" />
-        <button id="testVoiceBtn" class="secondary" style="margin-top: 8px" data-i18n="test_voice_btn">🔊 Vyskúšať hlas</button>
       </div>
 
       <div class="field checkbox-row">

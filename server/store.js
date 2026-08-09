@@ -22,7 +22,8 @@ const DEFAULT_SETTINGS = {
   moralLessonNext: '',
   minLength: 250,
   maxLength: 400,
-  voiceName: '',
+  // Hlas na citanie sa vybera len per-dieta (viz addChild nizsie) - rodinne nastavenie ma zmysel
+  // len pre rychlost citania, ktora ostava spolocna.
   voiceRate: 1,
   girlNames: [],
   boyNames: [],
@@ -166,7 +167,7 @@ function getChild(tenant, id) {
   return getChildren(tenant).find((c) => c.id === id) || null;
 }
 
-function addChild(tenant, { name, age, gender, intensity }) {
+function addChild(tenant, { name, age, gender, intensity, language, voiceName }) {
   const children = getChildren(tenant);
   const record = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
@@ -174,6 +175,10 @@ function addChild(tenant, { name, age, gender, intensity }) {
     age,
     gender,
     intensity: typeof intensity === 'number' ? intensity : 50,
+    // "" znamena "rovnaky jazyk ako rodina" (dynamicky sleduje zmeny rodinneho jazyka),
+    // 'sk'/'en' je explicitne prebitie len pre toto dieta - viz resolveStoryLanguage nizsie.
+    language: language === 'en' || language === 'sk' ? language : '',
+    voiceName: typeof voiceName === 'string' ? voiceName : '',
     createdAt: new Date().toISOString(),
   };
   children.push(record);
@@ -196,6 +201,13 @@ function deleteChild(tenant, id) {
   if (filtered.length === children.length) return false;
   saveChildrenList(tenant, filtered);
   return true;
+}
+
+// Jazyk, v akom sa pre toto dieta generuju a citaju rozpravky: explicitne "sk"/"en" na dietati
+// ma prednost, inak (chyba - vratane starych zaznamov spred tejto funkcie) sa pouzije jazyk rodiny.
+function resolveStoryLanguage(child, settings) {
+  if (child && (child.language === 'en' || child.language === 'sk')) return child.language;
+  return settings && settings.language === 'en' ? 'en' : 'sk';
 }
 
 function tenantExists(tenant) {
@@ -325,6 +337,7 @@ module.exports = {
   addChild,
   updateChild,
   deleteChild,
+  resolveStoryLanguage,
   tenantExists,
   listTenants,
   getUsageSummary,
